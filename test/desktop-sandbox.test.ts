@@ -43,6 +43,13 @@ for name, url in [("own_tcp", sys.argv[3]), ("other_tcp", sys.argv[4])]:
     except OSError:
         result[name] = "denied"
 try:
+    resolver = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    resolver.connect("/private/var/run/mDNSResponder")
+    resolver.close()
+    result["dns"] = "connected"
+except OSError:
+    result["dns"] = "denied"
+try:
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client.connect(str(root / "hc.sock"))
     result["unix"] = "connected"
@@ -80,6 +87,7 @@ print(json.dumps(result))`;
         own_tcp: "scoped",
         other_tcp: "denied",
         unix: "denied",
+        dns: "connected",
       });
     } finally {
       own.stop(true);

@@ -27,6 +27,7 @@ export function mainSandboxPolicy({
     `(allow file-write* ${subpath(session)} ${subpath(privateData)})`,
     "(deny network-outbound (remote unix-socket))",
     '(deny network-outbound (remote ip "localhost:*"))',
+    '(allow network-outbound (literal "/private/var/run/mDNSResponder"))',
     ...(port === undefined ? [] : [`(allow network-outbound (remote ip "localhost:${port}"))`]),
   ].join("\n");
 }

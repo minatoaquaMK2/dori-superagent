@@ -51,7 +51,8 @@ export function profilePicker(chat, locked) {
       .anchor("top_left")
       .open(chat.menu === id && !locked)
       .on_open_change((open, cx) => {
-        chat.menu = open && !locked ? id : null;
+        if (open && !locked) chat.menu = id;
+        else if (chat.menu === id) chat.menu = null;
         cx.notify();
       })
       .trigger(trigger(label, locked))

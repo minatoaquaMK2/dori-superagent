@@ -43,9 +43,10 @@ export class Engine {
           }
       },
     );
-    this.events = new ChatEvents(store, this.tasks, rpc, this.epoch, this.tools, (conversation) =>
-      this.drain(conversation),
-    );
+    this.events = new ChatEvents(store, this.tasks, rpc, this.epoch, this.tools, (conversation) => {
+      this.configuration.adoptLegacy(conversation);
+      return this.drain(conversation);
+    });
     rpc.onEvent = (event) => {
       void this.events.event(event).catch((error: unknown) => {
         process.stderr.write(`${JSON.stringify({ event: event.method, error: String(error) })}\n`);

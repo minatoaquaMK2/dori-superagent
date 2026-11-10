@@ -16,6 +16,17 @@ export async function recoverChats(
     await configuration.refresh(conversation.cwd);
     const segment = conversation.segments.find((segment) => segment.id === conversation.activeSegment);
     if (!segment) throw new Error("Conversation has no active segment");
+    if (
+      !conversation.threadId &&
+      !segment.sessionId &&
+      (conversation.activeRun || conversation.state.kind === "running")
+    ) {
+      const run = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
+      if (run) run.state = "unknown";
+      conversation.activeRun = null;
+      conversation.state = { kind: "idle" };
+      store.message(conversation, "上次消息尚未发送到 CLI，未自动重放。可以重新发送。", "系统");
+    }
     if (conversation.profile.selection.provider !== "codex") {
       if (conversation.activeRun || conversation.state.kind === "running") {
         conversation.state = { kind: "disconnected", reason: "CLI 会话在桥接退出后状态未知，未自动重放。" };
@@ -51,12 +62,6 @@ export async function recoverChats(
       } catch (error) {
         conversation.state = { kind: "disconnected", reason: String(error) };
       }
-    } else if (conversation.activeRun) {
-      const run = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
-      if (run) run.state = "unknown";
-      conversation.activeRun = null;
-      conversation.state = { kind: "idle" };
-      store.message(conversation, "上次消息尚未发送到 CLI，未自动重放。可以重新发送。", "系统");
     }
     if (conversation.pending.length) {
       for (const run of conversation.runs) if (run.state === "accepted") run.state = "unknown";
