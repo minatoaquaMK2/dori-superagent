@@ -1,0 +1,94 @@
+{
+  "provider": "devin",
+  "status": "initialized",
+  "protocolVersion": 1,
+  "agentInfo": {
+    "name": "affogato",
+    "title": "Devin Agent",
+    "version": "0.0.0-dev"
+  },
+  "agentCapabilities": {
+    "loadSession": true,
+    "promptCapabilities": {
+      "image": true,
+      "audio": false,
+      "embeddedContext": true
+    },
+    "mcpCapabilities": {
+      "http": true,
+      "sse": true
+    },
+    "sessionCapabilities": {
+      "list": {},
+      "delete": {},
+      "additionalDirectories": {},
+      "close": {
+        "_meta": {
+          "cognition.ai/force": true
+        }
+      }
+    },
+    "auth": {},
+    "_meta": {
+      "cognition.ai/sessionDefaultConfigOptions": true,
+      "cognition.ai/multiRootWorkspace": true,
+      "cognition.ai/sessionListContentSearch": true,
+      "cognition.ai/sessionListOrderBy": [
+        "updated_at",
+        "created_at"
+      ],
+      "cognition.ai/sessionListSortDirection": true,
+      "cognition.ai/sessionRename": true,
+      "cognition.ai/persistOnCreate": true,
+      "cognition.ai/sessionShare": true,
+      "cognition.ai/documentLifecycle": true,
+      "cognition.ai/userEdits": true,
+      "cognition.ai/terminalLifecycle": true,
+      "cognition.ai/userConfig": true,
+      "cognition.ai/userShellCommand": true,
+      "cognition.ai/editableCommands": true,
+      "cognition.ai/commandRevision": true,
+      "cognition.ai/chains": true,
+      "cognition.ai/megaplan": true,
+      "cognition.ai/ruleMentions": true,
+      "cognition.ai/mentionTypes": [
+        {
+          "type": "file"
+        },
+        {
+          "type": "directory"
+        },
+        {
+          "type": "git"
+        },
+        {
+          "type": "rule",
+          "icon": "book",
+          "label": "Rules"
+        },
+        {
+          "type": "skill",
+          "icon": "zap",
+          "label": "Skills"
+        },
+        {
+          "type": "plan",
+          "icon": "file-text",
+          "label": "Plans"
+        },
+        {
+          "type": "conversation"
+        },
+        {
+          "type": "terminal"
+        },
+        {
+          "type": "codemap",
+          "icon": "map",
+          "label": "Codemaps"
+        }
+      ],
+      "cognition.ai/midTurnPrompts": true
+    }
+  }
+}

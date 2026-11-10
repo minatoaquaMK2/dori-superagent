@@ -7,34 +7,42 @@ stateDiagram-v2
   s2: Dispatch intent saved
   s3: Known result restored
   s4: Bridge stopped before a turn
-  s5: Worker thread created
-  s6: No turn ran#59; project released
-  s7: Worker running
-  s8: Bridge stopped while worker runs
-  s9: Result returned to chat
-  s10: Bridge stopped#59; worker has an outcome
-  s11: Terminal unavailable#59; outcome unknown
-  s12: Worker outcome remains unknown
-  s13: Worker resumed
-  s14: Result returned#59; terminal unavailable
+  s5: No turn ran#59; project released
+  s6: Worker thread created
+  s7: Launch identity unknown#59; project reserved
+  s8: Terminal unavailable#59; outcome unknown
+  s9: Native terminal created
+  s10: Worker running
+  s11: Bridge stopped while worker runs
+  s12: Result returned to chat
+  s13: Bridge stopped#59; worker has an outcome
+  s14: Worker outcome remains unknown
+  s15: Worker resumed
+  s16: Result returned#59; terminal unavailable
   [*] --> s0
   [*] --> s1
   s0 --> s2: dispatch task
   s1 --> s3: restart bridge and resume history
   s2 --> s4: bridge process stops
-  s2 --> s5: Codex creates thread
-  s4 --> s6: restart bridge and resume history
-  s5 --> s4: bridge process stops
-  s5 --> s7: Codex starts turn
-  s7 --> s8: bridge process stops
-  s7 --> s9: Codex returns an outcome
-  s8 --> s10: Codex returns an outcome
-  s8 --> s12: restart finds an incomplete turn or terminal attachment fails
-  s8 --> s13: restart bridge and resume history
-  s7 --> s11: terminal attach fails
-  s9 --> s10: bridge process stops
-  s10 --> s3: restart bridge and resume history
-  s11 --> s8: bridge process stops
-  s11 --> s14: Codex returns an outcome
-  s9 --> s14: terminal attach fails
-  s14 --> s10: bridge process stops
+  s4 --> s5: restart bridge and resume history
+  s2 --> s6: Codex creates thread
+  s4 --> s7: restart bridge and resume history
+  s6 --> s4: bridge process stops
+  s6 --> s8: terminal attachment or start acknowledgement fails
+  s6 --> s9: Herdr creates terminal
+  s8 --> s4: bridge process stops
+  s9 --> s4: bridge process stops
+  s9 --> s8: terminal attachment or start acknowledgement fails
+  s9 --> s10: Codex starts turn
+  s10 --> s11: bridge process stops
+  s10 --> s8: terminal attachment or start acknowledgement fails
+  s10 --> s12: Codex returns an outcome
+  s11 --> s13: Codex returns an outcome
+  s11 --> s14: restart finds an incomplete turn or terminal attachment fails
+  s11 --> s15: restart bridge and resume history
+  s8 --> s11: bridge process stops
+  s8 --> s16: Codex returns an outcome
+  s12 --> s13: bridge process stops
+  s12 --> s16: terminal attachment or start acknowledgement fails
+  s13 --> s3: restart bridge and resume history
+  s16 --> s13: bridge process stops

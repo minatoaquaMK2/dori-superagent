@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+76 |       await engine.tasks.dispatch(store.conversation("chat"), "same-call", {
+77 |         title: "Crash probe", prompt: "Do not run a real task",
+78 |       });
+79 |       expect(turnStarts).toBe(oldStarts);
+80 |       expect(task.state.kind).not.toBe("launching");
+81 |       expect(activeTask(task)).toBe(boundary === "thread/start");
+                                    ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-pkLQIX/verification/herdr-chat/runtime.test.ts:81:32)
+(fail) crash at thread/start retains unknown identity and releases authoritatively empty work [48.59ms]
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 5 expect() calls
+Ran 1 test across 6 files. [121.00ms]

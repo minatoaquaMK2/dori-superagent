@@ -1,14 +1,14 @@
 TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
 Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
 (Use the -nowarning option to disable this warning.)
-Running breadth-first search Model-Checking with fp 0 and seed 4430986704907854864 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 36851] (Mac OS X 27.2 aarch64, Eclipse Adoptium 25.0.5 x86_64, MSBDiskFPSet, DiskStateQueue).
-Parsing file /private/tmp/herdr-chat-formal.uAgOjh/models/Ledger.tla
-Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-6pfSE1/statechart-n14CYW/tmp-verdict-1/Naturals.tla
+Running breadth-first search Model-Checking with fp 0 and seed 285897780506329397 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 2733] (Mac OS X 27.2 aarch64, Eclipse Adoptium 25.0.5 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /private/tmp/dori-profile-formal-charts-v4/models/Ledger.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-tyIJYJ/statechart-SkJR91/tmp-verdict-1/Naturals.tla
 Semantic processing of module Naturals
 Semantic processing of module Ledger
-Starting... (2026-11-10 11:17:52)
+Starting... (2026-11-10 13:05:25)
 Computing initial states...
-Finished computing initial states: 1 distinct state generated at 2026-11-10 11:17:52.
+Finished computing initial states: 1 distinct state generated at 2026-11-10 13:05:25.
 Error: Invariant IntentBeforeEffect is violated.
 Error: The behavior up to this point is:
 State 1: <Initial predicate>
@@ -41,4 +41,4 @@ State 3: <RequestThread line 11, col 18 to line 12, col 89 of module Ledger>
 3 states generated, 3 distinct states found, 0 states left on queue.
 The depth of the complete state graph search is 3.
 The average outdegree of the complete state graph is 1 (minimum is 1, the maximum 1 and the 95th percentile is 1).
-Finished in 00s at (2026-11-10 11:17:52)
+Finished in 00s at (2026-11-10 13:05:25)

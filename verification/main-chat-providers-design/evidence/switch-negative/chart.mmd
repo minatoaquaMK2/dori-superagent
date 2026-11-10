@@ -1,0 +1,38 @@
+---
+title: "Main chat provider switching"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks NoStaleTools
+    lg1: Path to the NoStaleTools bug
+  }
+  class lg0 breaks
+  class lg1 bugPath
+  s0: 可发送或切换
+  s1: 正在回复
+  s2: 连接新 CLI
+  s3: 等待确认旧会话状态
+  s4: 正在回复#65288;误接收旧会话工具#65289;
+  s5: 可发送或切换#65288;误接收旧会话工具#65289;
+  s6: 等待确认旧会话状态#65288;误接收旧会话工具#65289;
+  [*] --> s0
+  s0 --> s1: 发送消息
+  s0 --> s2: 选择另一个 CLI
+  s1 --> s0: 回复结束或处理下一条
+  s1 --> s3: 连接中断
+  s2 --> s0: 连接失败#65292;保留原 CLI or 连接成功后切换
+  s3 --> s0: 确认旧请求已结束并处理未发队列
+  s1 --> s4: 误接收旧会话的延迟工具调用
+  s4 --> s1: 接收当前会话工具调用
+  s4 --> s5: 回复结束或处理下一条
+  s4 --> s6: 连接中断
+  s5 --> s1: 发送消息
+  s6 --> s5: 确认旧请求已结束并处理未发队列
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 bugPath
+  class s1 bugPath
+  class s2 bugPath
+  class s4 breaks
+  class s4 bugPath
+  class s5 breaks
+  class s6 breaks

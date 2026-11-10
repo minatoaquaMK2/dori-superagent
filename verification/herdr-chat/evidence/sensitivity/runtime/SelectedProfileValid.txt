@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+85 |           expectedRevision: 0,
+86 |           catalogRevision: catalog?.revision,
+87 |           selection: { provider: "codex", modelChoice: "model-b", effortChoice: "high" },
+88 |         })
+89 |       ).status,
+90 |     ).toBe(400);
+           ^
+error: expect(received).toBe(expected)
+
+Expected: 400
+Received: 202
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-kxkG9u/test/desktop-profile.test.ts:90:7)
+(fail) model catalog rejects unsupported effort without mutating profile or history [18.14ms]
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [41.00ms]

@@ -1,0 +1,36 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 0 and seed -7422270198293570957 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 3801] (Mac OS X 27.2 aarch64, Eclipse Adoptium 25.0.5 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /private/tmp/dori-profile-formal-charts-v5/models/ProfileRun.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-T9h0Gf/statechart-7ITUo2/tmp-verdict-1/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module ProfileRun
+Starting... (2026-11-10 13:07:09)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-10 13:07:09.
+Error: Invariant SelectedProfileValid is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ origin = <<"none", "none", "none">>
+/\ effects = 0
+/\ selected = <<"codex", "C1", "high">>
+/\ switched = FALSE
+/\ phase = "idle"
+/\ receipt = FALSE
+/\ worker = <<"none", "none", "none">>
+/\ staleEffect = FALSE
+
+State 2: <Choose line 13, col 14 to line 17, col 74 of module ProfileRun>
+/\ origin = <<"none", "none", "none">>
+/\ effects = 0
+/\ selected = <<"codex", "C2-no-effort", "high">>
+/\ switched = TRUE
+/\ phase = "idle"
+/\ receipt = FALSE
+/\ worker = <<"none", "none", "none">>
+/\ staleEffect = FALSE
+
+10 states generated, 4 distinct states found, 2 states left on queue.
+The depth of the complete state graph search is 2.
+Finished in 00s at (2026-11-10 13:07:09)

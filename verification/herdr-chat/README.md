@@ -1,61 +1,86 @@
 # Herdr chat protocol verification
 
-This checks the protocol behind a native Herdr chat that dispatches to a real Codex terminal and brings results back into chat. TLC explores finite event orders; runtime probes execute the actual TypeScript classes through an isolated Unix WebSocket server.
+These checks describe task dispatch, accepted CLI/model/effort profiles, scoped host operations, and result recovery in the native Herdr chat. TLC explores finite event orders. Runtime replays exercise the actual TypeScript classes against isolated protocol servers and fake terminal commands.
 
-The source version is recorded in [source-sync.json](source-sync.json). The check refuses changed source until its model mapping is reviewed.
+[source-sync.json](source-sync.json) records the reviewed source commit and file hashes. The default check rejects changed source until its action mapping is reconciled. The earlier [provider design models](../main-chat-providers-design/README.md) remain historical specifications, separate from these implementation checks.
 
-## Run the checks
+## Commands and evidence
 
-Use Bun 1.4.4 and mise. Install the repository dependencies with `bun install --frozen-lockfile`, then run:
+The commands use Bun 1.4.4 and mise. `check.ts` pins TLC 1.7.4 by SHA-256 and Temurin Java 25.0.5+8.0.LTS.
 
 ```sh
-bun verification/herdr-chat/check.ts
-bun verification/herdr-chat/mutations.ts
+bun verification/herdr-chat/check.ts /tmp/herdr-formal-new-run
+bun verification/herdr-chat/mutations.ts /tmp/herdr-formal-new-mutations
+bun verification/herdr-chat/runtime.ts
 ```
 
-An optional first argument selects an evidence directory. The verifier pins TLC 1.7.4 by SHA-256 and Temurin Java 25.0.5+8.0.LTS. Read model results with the installed pstack `/statechart` skill, using each `.tla`, matching `.cfg`, and `*-view.mjs` file in `models`. That skill owns chart generation and its current command. Use a new output directory for every run.
+The first two commands accept an optional evidence directory. Runtime checks always start a fresh process with fake `hc`, `herdr-app`, `codex`, `agy`, and `devin` commands first on PATH. The isolation probe must exit 72 before dispatch tests run. Fake `hc ls` returns an empty terminal list. Only crash children explicitly allow a fake terminal creation response. No fake command can start a program. A log counts launch attempts for the native recovery replay. Sockets, stores, children, and source mutants use temporary directories.
 
-Use `bun verification/herdr-chat/runtime.ts` for runtime checks alone. It supplies fake terminal commands before a fresh Bun process starts and checks that isolation before dispatch. Every socket, store, crash child, and source mutant lives under `/tmp`. It does not start a real Codex model, use the user's bridge, or modify source files.
+The installed pstack `statechart` skill generates each report and Mermaid chart from a scratch copy of `models`. Each model has a matching view module. For example:
 
-## Feature map and checked promises
+```sh
+statechart /tmp/herdr-models/ProfileRun.tla --config /tmp/herdr-models/ProfileRun.cfg --view /tmp/herdr-models/profile-run-view.mjs --out /tmp/herdr-profile-chart
+```
 
-| User behavior | Implementation | Model or runtime coverage |
+Here `statechart` is the installed skill's `scripts/statechart` command. Negative configurations live in `models/negative`; their nonzero exits are expected. Each report contains its shortest counterexamples and lists any rule that was not checked.
+
+## Checked behavior
+
+| User behavior | Implementation | Coverage |
 | --- | --- | --- |
-| One tool call creates one worker | `Tasks.dispatch`, `activeTask`, `Store.save` | `Ledger`: durable intent before external request and call identity deduplication, including a duplicate after completion and reload |
-| A bridge restart reconciles interrupted launch | `Tasks.dispatch`, `Tasks.recover`, `resumeThread` | `Dispatch`: external thread/turn/terminal effects separated from saved acknowledgements; crash at every modeled boundary |
-| A known outcome releases the project | `Tasks.complete`, `Tasks.recover`, `activeTask` | `Dispatch`: recovery restores an authoritative completed turn even when its message was already reported |
-| Results return once with truthful status | `Tasks.complete`, `Store.message` | `Ledger`: one report and result context, preserving completed, failed, and interrupted; runtime duplicates all three |
-| An unknown result remains disconnected | `Tasks.dispatch` catch, `Engine.disconnect` | `Dispatch.NoInventedCompletion`; runtime attach failure with no outcome |
-| Worker terminal owns approvals | `Tasks.event`, `Engine.event` | `Ownership`: worker requests remain unanswered by bridge; chat requests are declined |
-| Disconnected chat rejects new work | `Engine.send`, `Rpc.fail` | `Ownership`; runtime closes the actual RPC socket before sending |
-| Herdr terminal attaches to the intended thread | `attachTerminal` | Source mapping only: task label plus Codex foreground arguments or the exact adapter CLI path, thread ID, and socket. |
-| Original Agents sidebar reflects the worker | `runTerminal`, `nativeStatus`, desktop CLI terminal command | Outside TLC scope: the adapter maps authoritative thread status to Herdr OSC status and starts the original Codex TUI. Its source is included in the sync record; native display needs the separate UI driver. |
+| One dispatch identity creates one task | `Tasks.dispatch`, `Store.save` | `Ledger`; persisted duplicate and conflicting-payload replays |
+| A Codex terminal exists before execution begins | `Tasks.dispatch`, `attachTerminal` | `Dispatch.TerminalBeforeTurn`; SIGKILL at the first `turn/start` observes the saved fake terminal |
+| Unknown launch identity is retained without retry | `Tasks.recover`, native `reconcile` | `Dispatch.UnknownThreadIdentityHeld`, `NativeWorker.UnknownLaunchNotReplayed`; crash and native launch-attempt replays |
+| Authoritatively empty or completed work releases its reservation | `Tasks.recover`, `Tasks.complete` | `Dispatch`; empty history and already-reported completion after restart |
+| Each real outcome returns once | `Tasks.complete`, native `apply`, `Store.message` | `Ledger`, `NativeWorker`; completed, failed, interrupted, and repeated native reports |
+| CLI, model, and effort remain fixed for an accepted request | `Engine.send`, `Configuration.configure`, `Tasks.dispatch` | `ProfileRun`; busy and stale configuration rejection, exact outbound model settings, later-selection inheritance |
+| Finished or unknown runs cannot create a first host effect | `HostTools.call`, `forBinding` | `ProfileRun`; persisted receipt replay, changed-payload rejection, stale run and revoked binding rejection |
+| A native terminal keeps project ownership until it closes | `activeTask`, native `apply`, `reconcile` | `NativeWorker`; Stop, duplicate Stop, a second user-turn boundary, and ProcessExit |
+| Antigravity background work is not reported complete | native `apply` | `NativeWorker.OnlyQuiescentResult`; `fullyIdle=false` replay |
+| Codex worker approvals remain in its terminal | `Tasks.event`, `ChatEvents.event` | `Ownership`; worker request remains unanswered and main-chat request is declined |
+| Unsent ACP messages do not lock the composer after restart | `recoverChats` | Persisted pre-session run replay, with no prompt resend |
+| Migrated active Codex replies can finish | `migrateState`, `recoverChats`, `ChatEvents` | Active legacy completion releases the composer, denies unowned tools, and resolves the next request's profile |
 
-## Model actions and atomic boundaries
+Native worker YOLO defaults, real CLI authentication, process sandbox enforcement, and original Agents sidebar visibility require the separate native verification. The Codex approval model does not assert that native workers ask for approval.
 
-`Dispatch.SaveIntent` is the synchronous task insertion and `Store.save(conversation)` in `Tasks.dispatch`. `CreateThread` is the external `thread/start` effect; `SaveThread` is assignment of its returned ID and the following save. `StartTurn` is the external `turn/start` effect; `SaveTurn` is the guarded launching-to-running transition and save after its response. This separation admits process death after an effect but before its acknowledgement is saved.
+## Actions and atomic boundaries
 
-`CreateTerminal` represents `hc run` creating a task-labeled terminal. `SaveTerminal` represents the subsequent task terminal assignment and `Store.message` save. Recovery uses `attachTerminal` to find a terminal by label. `TerminalFailure` maps to the dispatch catch; the fixed code preserves a finished result and returns that result with an attachment warning. `Complete` maps to `Tasks.complete`; when the process is stopped, it changes only the external outcome until `recover` reads it. `Recover` maps to the idle empty-history branch, completed-turn reconciliation, active-turn branch, and terminal attachment in `Tasks.recover`. `RecoverIncomplete` maps to a latest in-progress turn whose thread is inactive, or failed reattachment while the task is active.
+`Dispatch.SaveIntent` is task insertion plus `Store.save(conversation)`. `SaveAttempt` saves `launch = thread-attempted` before `thread/start`. `CreateThread` is the external effect; `SaveThread` saves its returned identity. `CreateTerminal` represents `hc run` creating the labeled Codex terminal, and `SaveTerminal` saves its address. `StartTurn` and `SaveTurn` separate the external turn from its saved acknowledgement. A process crash can occur between each external effect and save.
 
-`Ledger` projects one dispatch and one duplicate delivery through the same synchronous guards. `Report` includes `task.state`, `task.reported`, `conversation.resultContext`, and the final `Store.message` save. The fixed `Tasks.event` ignores duplicate completion notifications, while `Tasks.complete` restores state before suppressing a duplicate report during recovery. `Ownership` projects `Tasks.event` worker approvals, `Engine.event` chat approvals, `Rpc.fail`/`Engine.disconnect`, and the admission guard in `Engine.send`.
+`TerminalFailure` covers the dispatch catch after thread creation, including an attachment or turn acknowledgement failure. It preserves an already-finished result. `Complete` represents `Tasks.complete`; while the bridge is stopped, only the remote outcome changes. `Recover` reads authoritative history, restores an outcome before checking report deduplication, and finds or reattaches the labeled terminal. `RecoverIncomplete` keeps unresolved active work disconnected.
 
-Each synchronous save is an old-or-new whole-store transition for process crashes. JavaScript callbacks cannot interleave inside it. The model does not assume power-loss durability: `Store.save` renames a temporary file but does not fsync it. Disk errors, corrupted files, multiple bridge processes, concurrent `hc` creators, malicious servers, and arbitrary reordered turn notifications are outside the model.
+The earlier `RecoveredEmptyTaskReleased` wording covered every empty result. It now covers an unattempted launch or a known idle thread with no turns. An attempted launch with no saved thread ID remains disconnected. The durable launch checkpoints and no-replay decision in `9b29dce`, documented in the [implementation reconciliation](../../docs/design/main-chat-implementation.md), deliberately changed this admission rule. `UnknownThreadIdentityHeld` separately checks the new branch. No completed-result rule was weakened.
 
-## Bounds and limits
+`Ledger` projects durable intent, one repeated call, one outcome, and one repeated completion. Its report transition includes task state, reported IDs, result context, and `Store.message`. `Ownership` projects Codex worker approvals, main-chat approvals, transport loss, and admission after disconnect. Event handling moved from `Engine` into `ChatEvents` and `recovery.ts`; the model's ownership promise is unchanged.
 
-The dispatch model has one task, one turn, at most one process crash, three possible terminal outcomes, and authoritative history lookup after restart. It explores completion before or after terminal attachment fails, and incomplete-turn recovery. It also starts from a valid old snapshot with a reported outcome marked disconnected. Empty-thread recovery assumes the server reports idle, as required by the fix. It does not prove eventual remote completion, network reconnect fairness, unbounded queues, or multi-turn history ordering. The ledger adds one duplicate call and one duplicate completion. Ownership checks one worker approval, one chat approval, and one send after disconnect. These are separate projections, not a proof of all cross-products of those events.
+`ProfileRun.Choose` maps to catalog validation and the idle/pending/active-run guards in `Configuration.configure`. `Accept` maps to `Engine.send` freezing the entire profile inside `MainRun.origin`. `Tool` combines the `HostTools` ownership guard, the durable task identity, and its receipt. `Finish` removes active ownership; `Disconnect` marks the ACP run unknown. `Retry` returns a matching saved receipt. The runtime replay additionally checks argument fingerprints, segment ownership, configuration revisions, and the exact worker model/effort sent to the protocol.
 
-The charts merge outcome values when their behavior is identical and omit transitions that stay inside one label. The current dispatch chart also merges thread-identity saves and terminal creation/acknowledgement while a worker runs. It draws 15 states and 19 arrows from the 67-state model. The original detailed chart keeps both bug paths.
+`NativeWorker.SaveAttempt` saves `terminal-attempted` before `attachNativeTerminal`. `Launch` abstracts the inseparable native `hc run` terminal/CLI effect. `PartialStop` is Antigravity Stop with `fullyIdle=false`; `FullStop` is its final Stop or an authoritative Devin Stop. `DuplicateStop` is a repeated session/turn identity. `ObservedExit` is ProcessExit or an identity-checked terminal closure. A Stop returns a result but keeps `runtime.open`, which keeps `activeTask` true. Recovery polls durable spool entries and reconciles the existing terminal; it never calls launch again.
 
-## Findings and sensitivity
+Each synchronous `Store.save` is an old-or-new whole-store transition for process crashes. JavaScript callbacks do not interleave inside that save. Power-loss durability is excluded because the store renames a temporary file without fsync.
 
-At source `5ed4312b8ef8a051d3a3209475ac7c92bf464a49`, `Dispatch` reached 77 states and 152 steps. It found two violations. [The original report](evidence/dispatch-before-fix/report.md) gives the shortest paths; [the Mermaid chart](evidence/dispatch-before-fix/chart.mmd) marks them.
+## Results and limits
 
-1. `RecoveredEmptyTaskReleased`: save intent, create thread, save its ID, crash, recover empty history. The task stays launching and blocks the project. The real replay kills a child using `Engine`, `Rpc`, and `Store` after the server receives but does not execute `turn/start`.
-2. `RecoveredOutcomeKnown`: save a completed result, then fail terminal attachment, crash, and recover the already-reported completed turn. Deduplication returns before restoring finished state, so the project stays blocked.
+| Model | Reachable states | Explored steps | Evidence |
+| --- | ---: | ---: | --- |
+| Dispatch | 57 | 106 | [Report and chart](evidence/dispatch/report.md) |
+| Ledger | 15 | 17 | [Report and chart](evidence/ledger/report.md) |
+| Ownership | 5 | 5 | [Report and chart](evidence/ownership/report.md) |
+| ProfileRun | 41 | 101 | [Report and chart](evidence/profile-run/report.md) |
+| NativeWorker | 14 | 32 | [Report and chart](evidence/native-worker/report.md) |
 
-The fixed dispatch model reaches 67 states and 141 steps and passes all three invariants plus deadlock checking. It includes legacy persisted tasks and incomplete-turn recovery, which the original projection omitted. The ledger model reaches 15 states and 17 steps; ownership reaches 5 states and 5 steps. Both pass. [Current dispatch evidence](evidence/dispatch/report.md), [ledger evidence](evidence/ledger/report.md), and [ownership evidence](evidence/ownership/report.md) contain the generated results. No rule was weakened to get a pass.
+All five pass their safety invariants and deadlock checks with explicit terminal stuttering. These counts describe finite abstractions, not production scale or a percentage of behavior covered. The [runtime suite](evidence/runtime-current.txt) passes 24 tests and 106 assertions. All 23 deliberately changed source variants fail their corresponding runtime assertions. Syntax errors and failed isolation checks do not count as caught mutations. [Sensitivity evidence](evidence/sensitivity) includes the source-replay failures and all 21 deliberately broken model properties.
 
-The runtime suite passes 11 tests, including a real SIGKILL boundary, persisted legacy-state reload, and completion-before-attachment-failure replay. `mutations.ts` removes the durable save, call guard, and result guard; reintroduces both recovery defects; rewrites a failed outcome as completed; answers a worker approval; approves chat work; bypasses disconnected admission; and fabricates success after attachment failure. All ten variants fail their corresponding observable runtime assertions. [Sensitivity evidence](evidence/sensitivity) preserves those failures. The configurations in `models/negative` deliberately break all ten modeled safety rules; TLC finds them all. Their failure is expected, and they are not the default check configuration.
+Dispatch bounds one task, one turn, one crash, and three possible outcomes. Ledger bounds one duplicate call and one duplicate result. Ownership bounds one worker approval, one chat approval, and one disconnected send. ProfileRun bounds one run, one optional selection change, one host operation, four valid synthetic profiles across all three CLIs, and one invalid effort combination. NativeWorker bounds one task, one result identity, one crash, and counts up to two in fault variants. Its partial-Stop condition applies to Antigravity. Devin Stop lacks a quiescence field; retaining the terminal reservation protects project exclusivity, but these checks do not prove that Devin has no background work.
 
-During initial probe development, an in-process PATH change failed to isolate Bun's executable resolution. Five synthetic, already-exited terminals were created against fake sockets and then removed: `t1x`, `t1y`, `t1z`, `t20`, and `t21`. The corrected runner supplies PATH at process startup and fails closed before any task action. The user's terminal `t1w` was untouched.
+The models are separate projections. They do not explore their cross-product, multiple bridge writers, disk errors, corrupt stores, unbounded histories, arbitrary reordered provider events, malicious reports, or native model internals. They do not prove eventual completion or network fairness. Profile catalog availability and CLI permission behavior remain external assumptions. UI clicks, terminal OSC display, real model choice, helper transport authentication, and OS sandbox policy need separate tests and native evidence. The shared `HostTools` checks apply to callers that reached the validated ownership boundary, regardless of transport; they do not establish a provider's readiness.
+
+Charts merge normal states that have the same user-visible behavior and omit transitions that stay inside one label. Negative charts distinguish combinations of broken rules so that one violation does not hide another. The detailed dispatch chart retains its crash branches even though that produces 25 arrows.
+
+## Reconciliation record
+
+The prior source sync was `921cafbbeb12c16c73d0257ddcd33c89f9578fb2`. Running its check against the new code stopped at the source hash guard. The old model pass did not establish correctness of the new implementation. The update changes Codex terminal ordering and unknown launch recovery, adds profile and native ownership projections, and updates runtime fixtures to persisted version 2 data.
+
+The replay initially reproduced the ACP pre-session lock in `704eb0a`. The recovery change in `527e549` releases that unsent run without replay. This was a product defect, not model drift. Fixture failures from missing v2 fields and catalog responses were verification drift. A missing assignment in the first new NativeWorker model was a specification error; it was corrected before accepting any result.
+
+The [original dispatch defect report](evidence/dispatch-before-fix/report.md) and its exact model remain for historical comparison. They describe old empty-thread and already-reported completion recovery bugs. Current runtime mutations reintroduce those errors and still fail. During the original verification work, an in-process PATH change created five already-exited synthetic terminals; that incident is why the current runner enforces fresh-process command isolation before any task action.

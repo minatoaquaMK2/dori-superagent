@@ -1,0 +1,57 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 0 and seed 8925191780983032617 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 3803] (Mac OS X 27.2 aarch64, Eclipse Adoptium 25.0.5 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /private/tmp/dori-profile-formal-charts-v5/models/NativeWorker.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-e2qgU9/statechart-lb02TP/tmp-verdict-1/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module NativeWorker
+Starting... (2026-11-10 13:07:09)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-10 13:07:09.
+Error: Invariant OnlyQuiescentResult is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ launches = 0
+/\ crashed = FALSE
+/\ idle = FALSE
+/\ held = TRUE
+/\ open = TRUE
+/\ phase = "intent"
+/\ reports = 0
+/\ replayedUnknown = FALSE
+
+State 2: <SaveAttempt line 8, col 16 to line 9, col 93 of module NativeWorker>
+/\ launches = 0
+/\ crashed = FALSE
+/\ idle = FALSE
+/\ held = TRUE
+/\ open = TRUE
+/\ phase = "attempted"
+/\ reports = 0
+/\ replayedUnknown = FALSE
+
+State 3: <Launch line 10, col 11 to line 11, col 78 of module NativeWorker>
+/\ launches = 1
+/\ crashed = FALSE
+/\ idle = FALSE
+/\ held = TRUE
+/\ open = TRUE
+/\ phase = "running"
+/\ reports = 0
+/\ replayedUnknown = FALSE
+
+State 4: <PartialStop line 12, col 16 to line 14, col 84 of module NativeWorker>
+/\ launches = 1
+/\ crashed = FALSE
+/\ idle = FALSE
+/\ held = TRUE
+/\ open = TRUE
+/\ phase = "background"
+/\ reports = 1
+/\ replayedUnknown = FALSE
+
+10 states generated, 7 distinct states found, 2 states left on queue.
+The depth of the complete state graph search is 4.
+The average outdegree of the complete state graph is 2 (minimum is 1, the maximum 2 and the 95th percentile is 2).
+Finished in 00s at (2026-11-10 13:07:09)

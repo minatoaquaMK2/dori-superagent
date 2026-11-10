@@ -1,0 +1,64 @@
+---
+title: "Native worker result and project ownership"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks NativeResultOnce or OnlyQuiescentResult or OpenTerminalRetainsProject or UnknownLaunchNotReplayed
+    lg1: Path to the NativeResultOnce or OnlyQuiescentResult or OpenTerminalRetainsProject or UnknownLaunchNotReplayed bug
+  }
+  class lg0 breaks
+  class lg1 bugPath
+  s0: Task reserved
+  s1: Launch attempted
+  s2: Bridge stopped before launch
+  s3: Terminal closed#59; project released
+  s4: Native CLI running
+  s5: Launch or terminal state unknown
+  s6: Background work reported complete
+  s7: Open terminal lost project
+  s8: Unknown launch replayed
+  s9: Turn returned twice#59; Open terminal lost project
+  s10: Turn returned twice
+  s11: Unknown launch replayed#59; Background work reported complete
+  s12: Unknown launch replayed#59; Open terminal lost project
+  s13: Unknown launch replayed#59; Turn returned twice#59; Open terminal lost project
+  s14: Unknown launch replayed#59; Turn returned twice
+  [*] --> s0
+  s0 --> s1: save launch attempt
+  s0 --> s2: bridge stops
+  s1 --> s4: Herdr starts interactive CLI
+  s1 --> s5: bridge stops
+  s2 --> s3: restart finds no launch attempt
+  s4 --> s6: non-idle Stop arrives
+  s4 --> s3: owned terminal is confirmed closed
+  s4 --> s7: final Stop arrives
+  s4 --> s5: bridge stops
+  s5 --> s3: owned terminal is confirmed closed
+  s5 --> s8: retry an unknown launch
+  s6 --> s7: final Stop arrives
+  s7 --> s3: owned terminal is confirmed closed
+  s7 --> s9: same turn reports again
+  s9 --> s10: owned terminal is confirmed closed
+  s6 --> s11: retry an unknown launch
+  s7 --> s12: retry an unknown launch
+  s9 --> s13: retry an unknown launch
+  s12 --> s8: owned terminal is confirmed closed
+  s13 --> s14: owned terminal is confirmed closed
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 bugPath
+  class s1 bugPath
+  class s4 bugPath
+  class s5 bugPath
+  class s6 breaks
+  class s6 bugPath
+  class s7 breaks
+  class s7 bugPath
+  class s8 breaks
+  class s8 bugPath
+  class s9 breaks
+  class s9 bugPath
+  class s10 breaks
+  class s11 breaks
+  class s12 breaks
+  class s13 breaks
+  class s14 breaks

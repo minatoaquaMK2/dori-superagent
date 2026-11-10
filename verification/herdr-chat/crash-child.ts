@@ -7,5 +7,5 @@ if (!root) throw new Error("Pass an isolated runtime directory");
 const rpc = new Rpc(`${root}/codex.sock`);
 const engine = new Engine(new Store(`${root}/state.json`), rpc, `${root}/codex.sock`);
 await engine.initialize();
-const conversation = engine.open({ conversation: "chat", cwd: root, space: "formal-test" });
+const conversation = await engine.open({ conversation: "chat", cwd: root, space: "formal-test" });
 await engine.tasks.dispatch(conversation, "same-call", { title: "Crash probe", prompt: "Do not run a real task" });

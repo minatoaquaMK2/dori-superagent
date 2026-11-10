@@ -1,14 +1,22 @@
 bun test v1.4.4 (38afee6c8)
 
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
 test/desktop-recovery.test.ts:
 
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
 verification/herdr-chat/runtime.test.ts:
-210 |     const recovered = new Engine(reloaded, rpc, `${root}/codex.sock`);
-211 |     await recovered.initialize();
-212 |     await recovered.tasks.recover();
-213 |     const persisted = new Store(`${root}/state.json`);
-214 |     expect(persisted.state.tasks[0]?.state).toMatchObject({ kind: "finished", outcome: "completed" });
-215 |     expect(persisted.state.tasks[0]?.reported).toEqual(["turn"]);
+231 |     const recovered = new Engine(reloaded, rpc, `${root}/codex.sock`);
+232 |     await recovered.initialize();
+233 |     await recovered.tasks.recover();
+234 |     const persisted = new Store(`${root}/state.json`);
+235 |     expect(persisted.state.tasks[0]?.state).toMatchObject({ kind: "finished", outcome: "completed" });
+236 |     expect(persisted.state.tasks[0]?.reported).toEqual(["turn"]);
                                                      ^
 error: expect(received).toEqual(expected)
 
@@ -21,11 +29,11 @@ error: expect(received).toEqual(expected)
 - Expected  - 0
 + Received  + 2
 
-      at <anonymous> (/private/tmp/herdr-formal-mutant-xvMeX3/verification/herdr-chat/runtime.test.ts:215:48)
-(fail) recovery restores a persisted reported outcome without duplicating context [18.05ms]
+      at <anonymous> (/private/tmp/herdr-formal-mutant-BqcEsi/verification/herdr-chat/runtime.test.ts:236:48)
+(fail) recovery restores a persisted reported outcome without duplicating context [21.40ms]
 
  0 pass
- 10 filtered out
+ 23 filtered out
  1 fail
  2 expect() calls
-Ran 1 test across 2 files. [90.00ms]
+Ran 1 test across 6 files. [90.00ms]

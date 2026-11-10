@@ -4,10 +4,24 @@ import { resolve } from "node:path";
 const commands = mkdtempSync("/tmp/herdr-formal-commands-");
 let code = 1;
 try {
-  for (const command of ["hc", "herdr-app"])
+  for (const command of ["hc", "herdr-app", "codex", "agy", "devin"])
     writeFileSync(
       `${commands}/${command}`,
-      "#!/bin/sh\necho 'Formal probe blocked a real terminal command' >&2\nexit 72\n",
+      `#!/bin/sh
+if [ "$1" = "ls" ]; then
+  echo '{"terminals":[],"spaces":[]}'
+  exit 0
+fi
+if [ "$1" = "run" ]; then
+  echo run >> "$DORI_FORMAL_COMMANDS/run-attempts"
+fi
+if [ "$DORI_FORMAL_ATTACH_MODE" = "success" ] && [ "$1" = "run" ]; then
+  echo '{"address":"isolated-terminal"}'
+  exit 0
+fi
+echo 'Formal probe blocked a real terminal command' >&2
+exit 72
+`,
       { mode: 0o755 },
     );
   const child = Bun.spawn(
@@ -16,6 +30,10 @@ try {
       "test",
       "verification/herdr-chat/runtime.test.ts",
       "test/desktop-recovery.test.ts",
+      "test/desktop-native.test.ts",
+      "test/desktop-profile.test.ts",
+      "test/desktop-main-recovery.test.ts",
+      "verification/herdr-chat/profile-runtime.test.ts",
       ...process.argv.slice(2),
     ],
     {

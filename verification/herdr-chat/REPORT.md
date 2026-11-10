@@ -1,67 +1,45 @@
 # Herdr chat state check
 
-The checked protocol saves dispatch intent before starting a worker, prevents repeated call IDs from starting another worker, and returns each real outcome once. It leaves worker approval decisions to the terminal.
+Accepted requests retain their CLI, model, and reasoning effort. Scoped host calls create one task per operation, and real task outcomes return once. Native terminals retain project ownership until they close.
 
-Checked source: `921cafbbeb12c16c73d0257ddcd33c89f9578fb2`. The sync record pins the covered files, runtime probes, and dependency lock.
+The [source manifest](source-sync.json) identifies the reviewed code. The [reconciliation record](reconciliation.md) explains changes from the original Codex-only protocol. The [verification guide](README.md) maps model actions to source and lists the exact bounds.
 
-| Model | Current states | Current steps | Result |
+| Model | Reachable states | Explored steps | Result |
 | --- | ---: | ---: | --- |
-| Dispatch and recovery | 67 | 141 | Three invariants and deadlock check pass |
-| Dispatch/result ledger | 15 | 17 | Four invariants and deadlock check pass |
-| Approval ownership | 5 | 5 | Three invariants and deadlock check pass |
+| Dispatch and recovery | 57 | 106 | Pass |
+| Dispatch/result ledger | 15 | 17 | Pass |
+| Codex approval ownership | 5 | 5 | Pass |
+| Accepted profile and host operation | 41 | 101 | Pass |
+| Native worker ownership | 14 | 32 | Pass |
 
-TLC 1.7.4 exhaustively checked these finite models. They cover one task, one turn, one process crash, three outcomes, one duplicate dispatch, and one duplicate result. Recovery also checks an old saved task whose known outcome was marked disconnected. They do not prove the whole application or an unbounded protocol.
+TLC 1.7.4 checks all five finite projections. The actual-code suite passes 24 tests and 106 assertions. All 23 deliberate source regressions fail their matching runtime assertions, and all 21 broken model properties produce counterexamples. These results do not prove unbounded event histories, the cross-product of the models, provider internals, UI input, or OS containment.
 
-The original 77-state dispatch model found two defects, now fixed:
+The [original dispatch counterexamples](evidence/dispatch-before-fix/report.md) remain as historical evidence. Current recovery also retains an unknown attempted launch without replay. The [dispatch chart](evidence/dispatch/chart.mmd) and [native ownership chart](evidence/native-worker/chart.mmd) show those branches.
 
-- `RecoveredEmptyTaskReleased`: a task with no started turn must stop blocking its project. Original report path 0–5 saves the thread ID, crashes, then leaves empty history launching.
-- `RecoveredOutcomeKnown`: authoritative completed history must restore finished state. Original report path 0–9 saves a result, fails terminal attachment, crashes, then lets report deduplication prevent state reconciliation.
-
-The current runtime suite passes 11 tests. It kills a real bridge child at the launch boundary, reloads a saved legacy task, and replays completion before terminal attachment fails. All ten deliberate source regressions fail their matching runtime assertions. Deliberately broken model configurations fail the matching invariants too.
-
-Run `bun verification/herdr-chat/check.ts` and `bun verification/herdr-chat/mutations.ts` with Bun 1.4.4. The first command checks the source hashes, installs the pinned verifier through mise, and writes logs to a new temporary directory. Read each formal result with pstack `/statechart`. [The verification guide](README.md) maps actions to exact functions and lists assumptions. [The original counterexamples](evidence/dispatch-before-fix/report.md) remain available.
-
-This generated chart groups save acknowledgements and terminal attachment while work is running. The full model retains those crash boundaries.
+The profile chart below follows one accepted request and its scoped host operation.
 
 ```mermaid
 ---
-title: "Worker dispatch and recovery"
+title: "Accepted profile and scoped host operation"
 ---
 stateDiagram-v2
-  s0: No task
-  s1: Old bridge saved a result as disconnected
-  s2: Dispatch intent saved
-  s3: Known result restored
-  s4: Bridge stopped before a turn
-  s5: Worker thread created
-  s6: No turn ran#59; project released
-  s7: Worker running
-  s8: Bridge stopped while worker runs
-  s9: Result returned to chat
-  s10: Bridge stopped#59; worker has an outcome
-  s11: Terminal unavailable#59; outcome unknown
-  s12: Worker outcome remains unknown
-  s13: Worker resumed
-  s14: Result returned#59; terminal unavailable
+  s0: Composer ready
+  s1: New profile selected
+  s2: Reply uses accepted profile
+  s3: Reply finished without a task
+  s4: Reply running#59; task identity saved
+  s5: Reply disconnected#59; new effects denied
+  s6: Reply finished#59; receipt retained
+  s7: Reply disconnected#59; receipt retained
+  s8: Task keeps origin after selection changes
   [*] --> s0
-  [*] --> s1
-  s0 --> s2: dispatch task
-  s1 --> s3: restart bridge and resume history
-  s2 --> s4: bridge process stops
-  s2 --> s5: Codex creates thread
-  s4 --> s6: restart bridge and resume history
-  s5 --> s4: bridge process stops
-  s5 --> s7: Codex starts turn
-  s7 --> s8: bridge process stops
-  s7 --> s9: Codex returns an outcome
-  s8 --> s10: Codex returns an outcome
-  s8 --> s12: restart finds an incomplete turn or terminal attachment fails
-  s8 --> s13: restart bridge and resume history
-  s7 --> s11: terminal attach fails
-  s9 --> s10: bridge process stops
-  s10 --> s3: restart bridge and resume history
-  s11 --> s8: bridge process stops
-  s11 --> s14: Codex returns an outcome
-  s9 --> s14: terminal attach fails
-  s14 --> s10: bridge process stops
+  s0 --> s1: choose CLI, model and effort
+  s0 --> s2: send message
+  s1 --> s2: send message
+  s2 --> s3: reply ends
+  s2 --> s4: dispatch with accepted profile
+  s2 --> s5: provider session closes
+  s4 --> s6: reply ends
+  s4 --> s7: provider session closes
+  s6 --> s8: choose CLI, model and effort
 ```
