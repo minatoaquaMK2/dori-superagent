@@ -20,7 +20,7 @@ export class AcpChats {
 
   async create(conversation: Conversation, segment: Segment): Promise<string> {
     const token = crypto.randomUUID() + crypto.randomUUID();
-    const session = new AcpSession(join(this.directory, "main", segment.id), conversation.cwd, {
+    const session = new AcpSession(join(this.directory, "main", segment.id), conversation.cwd, this.directory, {
       url: this.url,
       token,
     });
@@ -124,6 +124,13 @@ export class AcpChats {
   }
   owner(token: string): { conversation: string; segment: string } | undefined {
     return [...this.sessions.values()].find((session) => session.token === token);
+  }
+  retire(segment: string): void {
+    const binding = this.sessions.get(segment);
+    if (!binding) return;
+    this.sessions.delete(segment);
+    binding.session.rpc.onClose = () => {};
+    binding.session.close();
   }
   close(): void {
     for (const binding of this.sessions.values()) binding.session.close();

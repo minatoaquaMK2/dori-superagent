@@ -63,6 +63,7 @@ export async function recoverChats(
       conversation.pending = [];
       store.message(conversation, "断开前尚未发送的消息没有自动重放，请重新发送。", "系统");
     }
+    configuration.adoptLegacy(conversation);
     store.save(conversation);
   }
 }

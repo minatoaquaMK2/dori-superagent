@@ -14,7 +14,7 @@ export class AcpCatalog {
   constructor(private readonly directory: string) {}
 
   async read(cwd: string): Promise<Catalog> {
-    const session = new AcpSession(join(this.directory, "catalogs", crypto.randomUUID()), cwd);
+    const session = new AcpSession(join(this.directory, "catalogs", crypto.randomUUID()), cwd, this.directory);
     try {
       const initial = await session.initialize();
       const defaultModel = initial.configOptions.find((option) => option.id === "model")?.currentValue;

@@ -73,7 +73,8 @@ export class ChatEvents {
       case "turn/completed": {
         const { turn } = turnEventSchema.parse(event.params);
         const active = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
-        if (!active || (active.turnId && active.turnId !== turn.id)) break;
+        if (!active && (conversation.state.kind !== "running" || conversation.state.turnId !== turn.id)) break;
+        if (active?.turnId && active.turnId !== turn.id) break;
         if (active) active.state = "finished";
         conversation.activeRun = null;
         conversation.state = { kind: "idle" };

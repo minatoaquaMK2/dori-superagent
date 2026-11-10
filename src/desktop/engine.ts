@@ -30,7 +30,7 @@ export class Engine {
     readonly nativeProviders = false,
   ) {
     this.tasks = new Tasks(store, rpc, socket);
-    this.configuration = new Configuration(store, rpc, nativeProviders);
+    this.configuration = new Configuration(store, rpc, nativeProviders, (segment) => this.acp.retire(segment));
     this.tools = new HostTools(store, this.tasks);
     this.acp = new AcpChats(
       store.directory,
@@ -115,14 +115,20 @@ export class Engine {
     const { conversation: id, requestId, text, expectedProfileRevision } = sendSchema.parse(input);
     const conversation = this.store.conversation(id);
     if (conversation.requests.includes(requestId)) return;
+    this.configuration.adoptLegacy(conversation);
     if (expectedProfileRevision !== undefined && expectedProfileRevision !== conversation.profileRevision)
       throw new Error("配置已改变，请刷新后发送。草稿已保留。");
     const provider = conversation.profile.selection.provider;
     const catalog = this.configuration.list(conversation.cwd).find((catalog) => catalog.provider === provider);
-    if (conversation.profile.selection.modelChoice === "unconfigured" || catalog?.status !== "ready")
+    if (
+      conversation.profile.selection.modelChoice === "unconfigured" ||
+      conversation.profile.catalogRevision === "legacy" ||
+      catalog?.status !== "ready"
+    )
       throw new Error(catalog?.reason ?? "模型目录不可用，未发送消息");
     if ((!this.connected && provider === "codex") || conversation.state.kind === "disconnected")
       throw new Error("Codex 连接已断开。请重新启动聊天工作台后再发送。");
+    this.configuration.validate(conversation.cwd, conversation.profile);
     if (conversation.pending.length >= 8) throw new Error("待发送消息过多，请等待当前回复。");
     conversation.requests.push(requestId);
     conversation.entries.push({ kind: "markdown", id: requestId, role: "user", text, source: "你" });
@@ -232,10 +238,6 @@ export class Engine {
       this.draining.delete(id);
       if (conversation.state.kind === "idle" && conversation.pending.length) void this.drain(conversation);
     }
-  }
-
-  async hostTool(token: string, input: unknown): Promise<string> {
-    return this.tools.forBinding(this.acp.owner(token), input);
   }
 
   private disconnect(reason: string): void {

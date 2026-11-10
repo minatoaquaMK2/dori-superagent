@@ -67,7 +67,7 @@ const spacesSchema = z.object({
 
 export async function install(cwd: string): Promise<void> {
   const folder = realpathSync(resolve(cwd));
-  const appHome = join(homedir(), ".config", "herdr-app");
+  const appHome = resolve(process.env["HERDR_APP_HOME"] ?? join(homedir(), ".config", "herdr-app"));
   const mod = join(appHome, "mods", "dori-chat");
   mkdirSync(mod, { recursive: true });
   cpSync(resolve(import.meta.dir, "../../herdr/mods/dori-chat"), mod, { recursive: true });

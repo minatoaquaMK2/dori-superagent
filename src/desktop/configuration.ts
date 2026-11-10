@@ -14,6 +14,7 @@ export class Configuration {
     private readonly store: Store,
     rpc: Rpc,
     private readonly nativeProviders = false,
+    private readonly retire: (segment: string) => void = () => {},
   ) {
     this.codex = new CodexCatalog(rpc);
     this.acp = new AcpCatalog(store.directory);
@@ -83,6 +84,41 @@ export class Configuration {
     return this.codex.resolve(catalog, selection);
   }
 
+  validate(cwd: string, profile: Profile): void {
+    const catalog = this.list(cwd).find((catalog) => catalog.provider === profile.selection.provider);
+    if (!catalog) throw new Error("模型目录不可用，未发送消息");
+    const current = this.resolve(cwd, profile.selection, catalog.revision);
+    if (JSON.stringify(current.resolved) !== JSON.stringify(profile.resolved))
+      throw new Error("CLI 的实际配置已改变，请重新选择模型与强度。草稿已保留。");
+  }
+
+  adoptLegacy(conversation: Conversation): void {
+    if (conversation.profile.catalogRevision !== "legacy" || conversation.state.kind !== "idle") return;
+    const catalog = this.list(conversation.cwd).find((catalog) => catalog.provider === "codex");
+    if (!catalog?.defaultSelection || catalog.status !== "ready") return;
+    let profile: Profile;
+    try {
+      profile = this.resolve(conversation.cwd, catalog.defaultSelection, catalog.revision);
+    } catch (error) {
+      catalog.reason = String(error);
+      return;
+    }
+    const segment = {
+      id: crypto.randomUUID(),
+      profile,
+      sessionId: null,
+      epoch: null,
+      handoff: handoffText(conversation),
+    };
+    conversation.segments.push(segment);
+    conversation.activeSegment = segment.id;
+    conversation.profile = profile;
+    conversation.profileRevision++;
+    conversation.preferences = [profile];
+    conversation.threadId = null;
+    this.store.save(conversation);
+  }
+
   configure(input: unknown): void {
     const request = configureSchema.parse(input);
     const conversation = this.store.conversation(request.conversation);
@@ -98,6 +134,7 @@ export class Configuration {
       throw new Error("请等待当前回复结束后再切换 CLI、模型或强度");
     const profile = this.resolve(conversation.cwd, request.selection, request.catalogRevision);
     const handoff = handoffText(conversation);
+    const previous = conversation.activeSegment;
     const segment = { id: crypto.randomUUID(), profile, sessionId: null, epoch: null, handoff };
     conversation.segments.push(segment);
     conversation.activeSegment = segment.id;
@@ -110,6 +147,7 @@ export class Configuration {
     ];
     conversation.configurations.push({ requestId: request.requestId, selection: request.selection });
     this.store.save(conversation);
+    this.retire(previous);
   }
 
   disconnected(provider: Provider, reason: string): void {

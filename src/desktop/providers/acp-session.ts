@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { type AcpEnvelope, StdioRpc } from "./stdio.ts";
+import { mainSandboxPolicy } from "./sandbox.ts";
 
 export const optionsSchema = z.object({
   configOptions: z.array(
@@ -36,6 +37,7 @@ export class AcpSession {
   constructor(
     directory: string,
     readonly project: string,
+    runtime: string,
     binding?: { url: string; token: string },
   ) {
     if (process.platform !== "darwin") throw new Error("Antigravity 主聊天目前需要 macOS 的只读进程沙盒");
@@ -55,7 +57,12 @@ export class AcpSession {
     const sandbox = join(state, "readonly.sb");
     writeFileSync(
       sandbox,
-      `(version 1)\n(allow default)\n(deny file-write*)\n(deny file-read* (subpath ${JSON.stringify(join(homedir(), ".gemini", "config"))}))\n(allow file-write* (subpath ${JSON.stringify(state)}) (subpath ${JSON.stringify(realpathSync(privateData))}))\n`,
+      mainSandboxPolicy({
+        runtime: realpathSync(runtime),
+        session: state,
+        privateData: realpathSync(privateData),
+        ...(binding ? { port: Number(new URL(binding.url).port) } : {}),
+      }),
       { mode: 0o600 },
     );
     this.mcpServers = binding

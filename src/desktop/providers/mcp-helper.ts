@@ -13,8 +13,9 @@ export async function runMcpHelper(file: string): Promise<void> {
   const binding = bindingSchema.parse(JSON.parse(readFileSync(file, "utf8")));
   const send = (message: object) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   let buffer = "";
+  const decoder = new TextDecoder();
   for await (const chunk of Bun.stdin.stream()) {
-    buffer += new TextDecoder().decode(chunk);
+    buffer += decoder.decode(chunk, { stream: true });
     if (buffer.length > 128_000) throw new Error("Host tool request exceeded limit");
     let newline = buffer.indexOf("\n");
     while (newline >= 0) {

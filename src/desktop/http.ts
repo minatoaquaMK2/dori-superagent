@@ -10,8 +10,8 @@ export function serve(engine: Engine, token: string) {
       const url = new URL(request.url);
       if (request.method === "POST" && url.pathname === "/host-tool") {
         try {
-          const text = await engine.hostTool(
-            request.headers.get("authorization")?.replace(/^Bearer /, "") ?? "",
+          const text = await engine.tools.forBinding(
+            engine.acp.owner(request.headers.get("authorization")?.replace(/^Bearer /, "") ?? ""),
             await request.json(),
           );
           return Response.json({ text });

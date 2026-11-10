@@ -94,6 +94,30 @@ test("model catalog rejects unsupported effort without mutating profile or histo
   }
 });
 
+test("a retired model cannot accept another request under a cached profile", async () => {
+  const f = await fixture();
+  try {
+    const conversation = f.store.conversation("chat");
+    const catalog = f.engine.configuration.list(conversation.cwd)[0];
+    if (!catalog) throw new Error("Missing fixture catalog");
+    catalog.models = [];
+    expect(
+      (
+        await f.request("/send", {
+          conversation: "chat",
+          requestId: "retired",
+          expectedProfileRevision: 0,
+          text: "Draft",
+        })
+      ).status,
+    ).toBe(400);
+    expect(conversation.requests).toHaveLength(0);
+    expect(conversation.runs).toHaveLength(0);
+  } finally {
+    await f.close();
+  }
+});
+
 test("v1 migration preserves history and request identities and writes one v2 store", async () => {
   const f = await fixture();
   try {
