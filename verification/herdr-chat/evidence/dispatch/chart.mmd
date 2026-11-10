@@ -1,0 +1,40 @@
+---
+title: "Worker dispatch and recovery"
+---
+stateDiagram-v2
+  s0: No task
+  s1: Old bridge saved a result as disconnected
+  s2: Dispatch intent saved
+  s3: Known result restored
+  s4: Bridge stopped before a turn
+  s5: Worker thread created
+  s6: No turn ran#59; project released
+  s7: Worker running
+  s8: Bridge stopped while worker runs
+  s9: Result returned to chat
+  s10: Bridge stopped#59; worker has an outcome
+  s11: Terminal unavailable#59; outcome unknown
+  s12: Worker outcome remains unknown
+  s13: Worker resumed
+  s14: Result returned#59; terminal unavailable
+  [*] --> s0
+  [*] --> s1
+  s0 --> s2: dispatch task
+  s1 --> s3: restart bridge and resume history
+  s2 --> s4: bridge process stops
+  s2 --> s5: Codex creates thread
+  s4 --> s6: restart bridge and resume history
+  s5 --> s4: bridge process stops
+  s5 --> s7: Codex starts turn
+  s7 --> s8: bridge process stops
+  s7 --> s9: Codex returns an outcome
+  s8 --> s10: Codex returns an outcome
+  s8 --> s12: restart finds an incomplete turn or terminal attachment fails
+  s8 --> s13: restart bridge and resume history
+  s7 --> s11: terminal attach fails
+  s9 --> s10: bridge process stops
+  s10 --> s3: restart bridge and resume history
+  s11 --> s8: bridge process stops
+  s11 --> s14: Codex returns an outcome
+  s9 --> s14: terminal attach fails
+  s14 --> s10: bridge process stops

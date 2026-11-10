@@ -1,0 +1,53 @@
+---
+title: "One dispatch identity and one returned outcome"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks CallStartsOnce or IntentBeforeEffect or OutcomePreserved or ResultReportedOnce
+    lg1: Path to the CallStartsOnce or IntentBeforeEffect or OutcomePreserved or ResultReportedOnce bug
+  }
+  class lg0 breaks
+  class lg1 bugPath
+  s0: No dispatch
+  s1: Intent missing
+  s2: Worker started without saved intent
+  s3: Worker returned completed
+  s4: Worker returned failed
+  s5: Worker returned interrupted
+  s6: Chat shows completed once
+  s7: Chat mislabeled failed
+  s8: Chat mislabeled interrupted
+  s9: Result duplicated in context
+  s10: Repeated dispatch started another worker
+  [*] --> s0
+  s0 --> s1: save task
+  s1 --> s2: start worker
+  s2 --> s3: worker finishes
+  s2 --> s4: worker finishes
+  s2 --> s5: worker finishes
+  s3 --> s6: return outcome to chat
+  s4 --> s7: return outcome to chat
+  s5 --> s8: return outcome to chat
+  s6 --> s9: same completion arrives again
+  s7 --> s9: same completion arrives again
+  s8 --> s9: same completion arrives again
+  s9 --> s10: same tool call arrives again
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 bugPath
+  class s1 bugPath
+  class s2 breaks
+  class s2 bugPath
+  class s3 breaks
+  class s3 bugPath
+  class s4 breaks
+  class s4 bugPath
+  class s5 breaks
+  class s6 breaks
+  class s6 bugPath
+  class s7 breaks
+  class s7 bugPath
+  class s8 breaks
+  class s9 breaks
+  class s9 bugPath
+  class s10 breaks
+  class s10 bugPath

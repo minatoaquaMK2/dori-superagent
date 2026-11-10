@@ -1,0 +1,25 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-recovery.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+105 |     const reloaded = new Store(`${f.root}/state.json`);
+106 |     const engine = new Engine(reloaded, f.rpc, `${f.root}/codex.sock`);
+107 |     await engine.tasks
+108 |       .dispatch(reloaded.conversation("chat"), "same-call", { title: "Duplicate", prompt: "Retry" })
+109 |       .catch(() => {});
+110 |     expect(reloaded.state.tasks).toHaveLength(1);
+                                       ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 1
+Received length: 2
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-k0aw06/verification/herdr-chat/runtime.test.ts:110:34)
+(fail) a finished dispatch call stays deduplicated across reload [23.89ms]
+
+ 0 pass
+ 10 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 2 files. [95.00ms]

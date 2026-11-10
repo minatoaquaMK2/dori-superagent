@@ -1,0 +1,25 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-recovery.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+150 |     await until(() => f.requests.some((r) => r.id === "chat-approval"));
+151 |     expect(f.requests.some((r) => r.id === "worker-approval")).toBe(false);
+152 |     expect(f.requests.find((r) => r.id === "chat-approval")?.["result"]).toEqual({ decision: "decline" });
+153 |     f.rpc.close();
+154 |     await until(() => !f.engine.connected);
+155 |     expect(() => f.engine.send({ conversation: "chat", requestId: "late", text: "Run" })).toThrow();
+                                                                                                ^
+error: expect(received).toThrow()
+
+Received function did not throw
+Received value: undefined
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-e9lilD/verification/herdr-chat/runtime.test.ts:155:91)
+(fail) worker approval remains unanswered by the bridge; chat approval is declined [27.77ms]
+
+ 0 pass
+ 10 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 2 files. [98.00ms]

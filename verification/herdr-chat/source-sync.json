@@ -1,0 +1,20 @@
+{
+  "commit": "921cafbbeb12c16c73d0257ddcd33c89f9578fb2",
+  "files": {
+    "src/desktop/engine.ts": "edd1fa8539ff8e90dfc381851325db5faf127ea4cdfae3d4aecb1fc6c60032db",
+    "src/desktop/tasks.ts": "3a3f193c470e0c9df1981911b0dae79a07aeb70d06cc47ff9be98ff58993845b",
+    "src/desktop/store.ts": "f1e57de7e7d1d6b62cf44c729baa68aa4b231f64d0f51a69748e5be7819dcac7",
+    "src/desktop/rpc.ts": "b01d7818cd0bc243aaf7a5523a7ba39be62597f16c31084697165a8dc436a6c0",
+    "src/desktop/herdr.ts": "7974676d07394a4fc00acd8aae278156aedaf88395e82f688bd50799ef639862",
+    "src/desktop/model.ts": "8a82fd49754034d5cb11c0c7e8ba84fad5a232e96ee7bfc4c305bd3a7d8d76c1",
+    "src/desktop/protocol.ts": "12367b9b21caefec4aae4ca27677d0f2cbb06f907f1a42b07083035f2ef93c3b",
+    "src/desktop/bridge.ts": "0398f29487d8f939c359ac047a4a080980be0e2c9f3d76feb69a5bb9cfed4d84",
+    "src/desktop/cli.ts": "be3d50eabe71a940e6991b2231cffa6cbc3ff43966d612e2a6e41e83ffd227ab",
+    "src/desktop/terminal.ts": "b8fc1e605c7977df60113c14f672e84be06a574acb89e0a124e0ddcf4565a62e",
+    "test/desktop-fixture.ts": "a4b9af6aec0bff8e9d0b43f608c30dc086e5210facff4551071f2830c48d7973",
+    "test/desktop-recovery.test.ts": "8fc241574d26906110811e406eb05e118ce9ccab635100f456f1570a69ceb050",
+    "test/desktop-recovery-case.ts": "ff76c44f087c72fa08612398b7bb4030a3eba96c7f7412d46557c88819a6c91d",
+    "package.json": "cd0eb8b808ff80b3d5ef9b539d921704ce4967b70942076a8210f610e9170963",
+    "bun.lock": "997f3ccd8d6fcd2fbbe18f533b2f6bedfcb93d69df493ef619174e8578c59896"
+  }
+}

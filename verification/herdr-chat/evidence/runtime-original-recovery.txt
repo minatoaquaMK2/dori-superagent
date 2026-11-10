@@ -1,0 +1,49 @@
+Source: 5ed4312b8ef8a051d3a3209475ac7c92bf464a49
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-recovery.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+63 |       const task = store.state.tasks[0];
+64 |       if (!task) throw new Error("Durable task disappeared");
+65 |       const oldStarts = turnStarts;
+66 |       await engine.tasks.dispatch(store.conversation("chat"), "same-call", { title: "Duplicate", prompt: "Retry" });
+67 |       expect(turnStarts).toBe(oldStarts);
+68 |       expect(task.state.kind).not.toBe("launching");
+                                       ^
+error: expect(received).not.toBe(expected)
+
+Expected: not "launching"
+
+      at <anonymous> (/private/tmp/herdr-formal-original-tor414o1/verification/herdr-chat/runtime.test.ts:68:35)
+(fail) crash at turn/start leaves durable intent and recovery releases work that never ran [44.43ms]
+209 |     const reloaded = new Store(`${root}/state.json`);
+210 |     const recovered = new Engine(reloaded, rpc, `${root}/codex.sock`);
+211 |     await recovered.initialize();
+212 |     await recovered.tasks.recover();
+213 |     const persisted = new Store(`${root}/state.json`);
+214 |     expect(persisted.state.tasks[0]?.state).toMatchObject({ kind: "finished", outcome: "completed" });
+                                                  ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "kind": "finished",
+-   "outcome": "completed",
++   "kind": "disconnected",
++   "reason":
++ "Error: hc failed (72): Formal probe blocked a real terminal command
++ "
++ ,
+  }
+
+- Expected  - 2
++ Received  + 5
+
+      at <anonymous> (/private/tmp/herdr-formal-original-tor414o1/verification/herdr-chat/runtime.test.ts:214:45)
+(fail) recovery restores a persisted reported outcome without duplicating context [21.23ms]
+
+ 0 pass
+ 9 filtered out
+ 2 fail
+ 5 expect() calls
+Ran 2 tests across 2 files. [168.00ms]

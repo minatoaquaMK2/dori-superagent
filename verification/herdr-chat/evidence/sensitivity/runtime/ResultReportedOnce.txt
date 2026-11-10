@@ -1,0 +1,31 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-recovery.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+210 |     const recovered = new Engine(reloaded, rpc, `${root}/codex.sock`);
+211 |     await recovered.initialize();
+212 |     await recovered.tasks.recover();
+213 |     const persisted = new Store(`${root}/state.json`);
+214 |     expect(persisted.state.tasks[0]?.state).toMatchObject({ kind: "finished", outcome: "completed" });
+215 |     expect(persisted.state.tasks[0]?.reported).toEqual(["turn"]);
+                                                     ^
+error: expect(received).toEqual(expected)
+
+  [
+    "turn",
++   "turn",
++   "turn",
+  ]
+
+- Expected  - 0
++ Received  + 2
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-xvMeX3/verification/herdr-chat/runtime.test.ts:215:48)
+(fail) recovery restores a persisted reported outcome without duplicating context [18.05ms]
+
+ 0 pass
+ 10 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 2 files. [90.00ms]

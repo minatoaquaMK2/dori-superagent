@@ -1,0 +1,68 @@
+---
+title: "Worker dispatch and recovery"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks NoInventedCompletion or RecoveredEmptyTaskReleased or RecoveredOutcomeKnown
+    lg1: Breaks NoInventedCompletion in some cases
+    lg2: Path to the NoInventedCompletion or RecoveredEmptyTaskReleased or RecoveredOutcomeKnown bug
+  }
+  class lg0 breaks
+  class lg1 mayBreak
+  class lg2 bugPath
+  s0: No task
+  s1: Old bridge saved a result as disconnected
+  s2: Dispatch intent saved
+  s3: Known result#59; project blocked
+  s4: Bridge stopped before a turn
+  s5: Worker thread created
+  s6: No turn ran#59; project released
+  s7: Worker running
+  s8: Bridge stopped while worker runs
+  s9: No turn ran#59; project blocked
+  s10: Result returned to chat
+  s11: Bridge stopped#59; worker has an outcome
+  s12: Unknown result labeled finished
+  s13: Worker outcome remains unknown
+  s14: Worker resumed
+  s15: Result returned#59; terminal unavailable
+  s16: Known result restored
+  [*] --> s0
+  [*] --> s1
+  s0 --> s2: dispatch task
+  s1 --> s3: restart bridge and resume history
+  s2 --> s4: bridge process stops
+  s2 --> s5: Codex creates thread
+  s4 --> s6: restart bridge and resume history
+  s5 --> s4: bridge process stops
+  s5 --> s5: save thread identity
+  s5 --> s7: Codex starts turn
+  s4 --> s9: restart bridge and resume history
+  s7 --> s8: bridge process stops
+  s7 --> s7: save start response
+  s7 --> s10: Codex returns an outcome
+  s8 --> s11: Codex returns an outcome
+  s8 --> s13: restart finds an incomplete turn or terminal attachment fails
+  s8 --> s14: restart bridge and resume history
+  s7 --> s12: terminal attach fails
+  s10 --> s11: bridge process stops
+  s11 --> s16: restart bridge and resume history
+  s12 --> s8: bridge process stops
+  s12 --> s15: Codex returns an outcome
+  s10 --> s15: terminal attach fails
+  s15 --> s11: bridge process stops
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  classDef mayBreak fill:#fff3e6,stroke:#e8730c,stroke-width:2.5px,color:#b85a06
+  class s0 bugPath
+  class s1 bugPath
+  class s2 bugPath
+  class s3 breaks
+  class s3 bugPath
+  class s4 bugPath
+  class s5 bugPath
+  class s7 bugPath
+  class s8 mayBreak
+  class s9 breaks
+  class s9 bugPath
+  class s12 breaks
+  class s12 bugPath
