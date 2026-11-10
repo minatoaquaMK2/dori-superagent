@@ -1,0 +1,71 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 0 and seed -1729104313243493865 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 35554] (Mac OS X 27.2 aarch64, Eclipse Adoptium 25.0.5 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /private/tmp/herdr-chat-formal.uAgOjh/models/Dispatch.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-oery0Z/statechart-ShEGVO/tmp-verdict-1/Naturals.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-oery0Z/statechart-ShEGVO/tmp-verdict-1/TLC.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-oery0Z/statechart-ShEGVO/tmp-verdict-1/Sequences.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-oery0Z/statechart-ShEGVO/tmp-verdict-1/FiniteSets.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module Dispatch
+Starting... (2026-11-10 11:12:30)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-10 11:12:30.
+Error: Invariant RecoveredEmptyTaskReleased is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ threadSaved = FALSE
+/\ terminalExists = FALSE
+/\ status = "absent"
+/\ pc = "idle"
+/\ remoteTurn = "none"
+/\ reported = FALSE
+
+State 2: <SaveIntent line 9, col 15 to line 10, col 80 of module Dispatch>
+/\ threadSaved = FALSE
+/\ terminalExists = FALSE
+/\ status = "launching"
+/\ pc = "intent"
+/\ remoteTurn = "none"
+/\ reported = FALSE
+
+State 3: <CreateThread line 11, col 17 to line 12, col 90 of module Dispatch>
+/\ threadSaved = FALSE
+/\ terminalExists = FALSE
+/\ status = "launching"
+/\ pc = "threadMade"
+/\ remoteTurn = "none"
+/\ reported = FALSE
+
+State 4: <SaveThread line 13, col 15 to line 14, col 75 of module Dispatch>
+/\ threadSaved = TRUE
+/\ terminalExists = FALSE
+/\ status = "launching"
+/\ pc = "threadSaved"
+/\ remoteTurn = "none"
+/\ reported = FALSE
+
+State 5: <Crash line 33, col 10 to line 35, col 83 of module Dispatch>
+/\ threadSaved = TRUE
+/\ terminalExists = FALSE
+/\ status = "launching"
+/\ pc = "crashed"
+/\ remoteTurn = "none"
+/\ reported = FALSE
+
+State 6: <Recover line 36, col 12 to line 44, col 51 of module Dispatch>
+/\ threadSaved = TRUE
+/\ terminalExists = FALSE
+/\ status = "launching"
+/\ pc = "recovered"
+/\ remoteTurn = "none"
+/\ reported = FALSE
+
+17 states generated, 14 distinct states found, 5 states left on queue.
+The depth of the complete state graph search is 6.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 5 and the 95th percentile is 5).
+Finished in 00s at (2026-11-10 11:12:30)

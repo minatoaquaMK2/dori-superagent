@@ -9,6 +9,9 @@
     "dori": "src/cli.ts"
   },
   "scripts": {
+    "desktop:install": "bun src/desktop/cli.ts install",
+    "desktop:serve": "bun src/desktop/cli.ts serve",
+    "test:desktop": "bun test test/desktop*.test.ts",
     "check": "biome check .",
     "fmt": "biome format --write .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p skills/dori-mode/scripts/tsconfig.json",
@@ -26,5 +29,8 @@
   },
   "engines": {
     "bun": ">=1.4.4"
+  },
+  "dependencies": {
+    "zod": "^4.6.7"
   }
 }

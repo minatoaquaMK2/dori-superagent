@@ -1,0 +1,37 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+149 |     const log = `${process.env["DORI_FORMAL_COMMANDS"]}/run-attempts`;
+150 |     const attempts = readFileSync(log, "utf8");
+151 |     const reloaded = new Store(`${f.root}/state.json`);
+152 |     const recovered = new Engine(reloaded, f.rpc, `${f.root}/codex.sock`);
+153 |     await recovered.tasks.recover().catch(() => {});
+154 |     expect(readFileSync(log, "utf8")).toBe(attempts);
+                                            ^
+error: expect(received).toBe(expected)
+
+  "run
++ run
+  "
+
+- Expected  - 0
++ Received  + 1
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-K1vu4L/verification/herdr-chat/profile-runtime.test.ts:154:39)
+(fail) native recovery retains an unknown launch without starting a second worker [80.78ms]
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 6 files. [106.00ms]

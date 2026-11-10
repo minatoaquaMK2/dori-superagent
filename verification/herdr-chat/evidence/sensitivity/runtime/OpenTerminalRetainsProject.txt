@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+50 |     writeReport(directory, "Stop", { ...payload, fullyIdle: true });
+51 |     f.engine.tasks.native.poll(task);
+52 |     writeReport(directory, "Stop", { ...payload, fullyIdle: true });
+53 |     f.engine.tasks.native.poll(task);
+54 |     expect(task.reported).toEqual(["session:0"]);
+55 |     expect(activeTask(task)).toBe(true);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-EIZvdl/test/desktop-native.test.ts:55:30)
+(fail) native results use real turn boundaries, survive restart and retain the open terminal lease [20.24ms]
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 6 files. [42.00ms]

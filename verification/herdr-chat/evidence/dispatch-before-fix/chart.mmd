@@ -1,0 +1,80 @@
+---
+title: "Worker dispatch, process crash, and recovery"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks RecoveredEmptyTaskReleased or RecoveredOutcomeKnown
+    lg1: Path to the RecoveredEmptyTaskReleased or RecoveredOutcomeKnown bug
+  }
+  class lg0 breaks
+  class lg1 bugPath
+  s0: No task
+  s1: Intent saved
+  s2: Bridge stopped#59; no saved thread
+  s3: Thread created#59; identity not saved
+  s4: No turn ran#59; project released
+  s5: Thread saved#59; no turn
+  s6: Bridge stopped#59; saved empty thread
+  s7: Turn started#59; response pending
+  s8: Bridge stopped#59; result unknown
+  s9: No turn ran#59; project blocked
+  s10: Worker running#59; terminal pending
+  s11: Result saved#59; terminal may be attaching
+  s12: Terminal failed#59; result unknown
+  s13: Worker resumed
+  s14: Terminal created#59; address not saved
+  s15: Bridge stopped#59; result saved
+  s16: Worker and terminal running
+  s17: Terminal failed after result saved
+  s18: Result saved after terminal failed
+  s19: Known result restored
+  s20: Bridge stopped#59; reported result marked disconnected
+  s21: Known result#59; project blocked
+  [*] --> s0
+  s0 --> s1: dispatch task
+  s1 --> s2: bridge process stops
+  s1 --> s3: Codex creates thread
+  s2 --> s4: restart bridge and resume history
+  s3 --> s2: bridge process stops
+  s3 --> s5: save thread identity
+  s5 --> s6: bridge process stops
+  s5 --> s7: Codex starts turn
+  s6 --> s9: restart bridge and resume history
+  s7 --> s8: bridge process stops
+  s7 --> s10: save start response
+  s7 --> s11: Codex returns an outcome
+  s8 --> s13: restart bridge and resume history
+  s10 --> s8: bridge process stops
+  s10 --> s12: terminal attach fails
+  s10 --> s14: Herdr creates terminal
+  s10 --> s11: Codex returns an outcome
+  s11 --> s15: bridge process stops
+  s11 --> s11: save start response
+  s8 --> s19: restart bridge and resume history
+  s12 --> s8: bridge process stops
+  s12 --> s18: Codex returns an outcome
+  s14 --> s8: bridge process stops
+  s14 --> s12: terminal attach fails
+  s14 --> s16: save terminal address
+  s14 --> s11: Codex returns an outcome
+  s15 --> s19: restart bridge and resume history
+  s11 --> s17: terminal attach fails
+  s16 --> s8: bridge process stops
+  s16 --> s11: Codex returns an outcome
+  s17 --> s20: bridge process stops
+  s18 --> s15: bridge process stops
+  s20 --> s21: restart bridge and resume history
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 bugPath
+  class s1 bugPath
+  class s3 bugPath
+  class s5 bugPath
+  class s6 bugPath
+  class s7 bugPath
+  class s9 breaks
+  class s9 bugPath
+  class s11 bugPath
+  class s17 bugPath
+  class s20 bugPath
+  class s21 breaks
+  class s21 bugPath

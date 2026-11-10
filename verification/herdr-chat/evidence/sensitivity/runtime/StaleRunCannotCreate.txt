@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+44 |       ...call, arguments: { ...call.arguments, title: "Changed" },
+45 |     })).rejects.toThrow();
+46 |     await expect(recovered.tools.forBinding(owner, {
+47 |       name: "start_task", arguments: { title: "Too late", prompt: "No side effect", operationId: run.operationId },
+48 |     })).rejects.toThrow();
+49 |     expect(reloaded.state.tasks).toHaveLength(0);
+                                      ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 0
+Received length: 1
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-KxK4hD/verification/herdr-chat/profile-runtime.test.ts:49:34)
+(fail) scoped host receipts survive reload, reject changed payloads and prevent stale first effects [85.52ms]
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 5 expect() calls
+Ran 1 test across 6 files. [107.00ms]

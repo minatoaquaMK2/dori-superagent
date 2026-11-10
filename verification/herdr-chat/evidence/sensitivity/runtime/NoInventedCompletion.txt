@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+183 |   const f = await fixture();
+184 |   try {
+185 |     await f.engine.tasks
+186 |       .dispatch(f.store.conversation("chat"), "new-call", { title: "Unknown", prompt: "Task" })
+187 |       .catch(() => {});
+188 |     expect(f.store.state.tasks[0]?.state.kind).toBe("disconnected");
+                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: "disconnected"
+Received: "finished"
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-ceTHmR/verification/herdr-chat/runtime.test.ts:188:48)
+(fail) terminal failure with an unconfirmed result remains disconnected [24.60ms]
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [93.00ms]

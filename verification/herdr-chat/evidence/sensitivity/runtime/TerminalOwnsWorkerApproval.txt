@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+166 |     f.engine.send({ conversation: "chat", requestId: "prepare", text: "Explain" });
+167 |     await until(() => f.requests.some((r) => r.method === "turn/start"));
+168 |     f.send("item/commandExecution/requestApproval", { threadId: task.threadId }, "worker-approval");
+169 |     f.send("item/commandExecution/requestApproval", { threadId: "chat-thread" }, "chat-approval");
+170 |     await until(() => f.requests.some((r) => r.id === "chat-approval"));
+171 |     expect(f.requests.some((r) => r.id === "worker-approval")).toBe(false);
+                                                                     ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-TT0L0F/verification/herdr-chat/runtime.test.ts:171:64)
+(fail) worker approval remains unanswered by the bridge; chat approval is declined [29.86ms]
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [102.00ms]

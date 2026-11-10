@@ -1,11 +1,10 @@
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { Glob } from "bun";
 
 const ROOT = resolve(import.meta.dir, "..");
 const TREES = ["src", "skills/dori-mode/scripts/src"];
-// The skill CLI runs its command at import; it is an entry point, never imported.
 const ENTRY_ONLY = new Set(["skills/dori-mode/scripts/src/cli.ts"]);
 
 const modules = (): string[] =>
@@ -41,9 +40,22 @@ test("every module loads on its own in a fresh process", async () => {
   const files = modules().filter((file) => !ENTRY_ONLY.has(file));
   expect(files.length).toBeGreaterThan(50);
   const failures: string[] = [];
+  const isolation = mkdtempSync("/tmp/dori-module-import-");
+  const bin = join(isolation, "bin");
+  mkdirSync(bin);
+  for (const executable of ["hc", "herdr-app", "codex", "agy", "devin"])
+    writeFileSync(join(bin, executable), "#!/bin/sh\necho Module import attempted an external command >&2\nexit 99\n", {
+      mode: 0o755,
+    });
   await Promise.all(
     files.map(async (file) => {
       const proc = Bun.spawn([process.execPath, "-e", `await import(${JSON.stringify(join(ROOT, file))})`], {
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env["PATH"]}`,
+          DORI_DESKTOP_HOME: join(isolation, "runtime"),
+          HERDR_APP_HOME: join(isolation, "app"),
+        },
         stdout: "pipe",
         stderr: "pipe",
       });
@@ -51,5 +63,6 @@ test("every module loads on its own in a fresh process", async () => {
       if (code !== 0 || err.trim()) failures.push(`${file}: exit ${code} ${err.trim().split("\n")[0] ?? ""}`);
     }),
   );
+  rmSync(isolation, { recursive: true, force: true });
   expect(failures).toEqual([]);
 }, 60_000);

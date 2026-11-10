@@ -1,0 +1,41 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+146 |       };
+147 |       f.engine.tasks.event(task, event);
+148 |       f.engine.tasks.event(task, event);
+149 |       f.store.save();
+150 |       const saved = new Store(`${f.root}/state.json`);
+151 |       expect(saved.state.tasks[0]?.state).toMatchObject({ kind: "finished", outcome });
+                                                ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "kind": "finished",
+-   "outcome": "failed",
++   "outcome": "completed",
++   "text": "本次运行结束，未返回文字结果。",
++   "turnId": "turn",
+  }
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-4Bnt1y/verification/herdr-chat/runtime.test.ts:151:43)
+(fail) duplicate failed result keeps one persisted report and context [20.70ms]
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [89.00ms]

@@ -1,0 +1,9 @@
+---
+title: "CLI, model, and reasoning effort are one profile"
+---
+stateDiagram-v2
+  s0: 配置已确认
+  s1: 校验 CLI#12289;模型和强度
+  [*] --> s0
+  s0 --> s1: 选择配置
+  s1 --> s0: 接受配置 or 拒绝不支持的组合#65292;保留原配置

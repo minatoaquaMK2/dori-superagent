@@ -1,0 +1,14 @@
+---
+title: "Approval ownership and disconnected admission"
+---
+stateDiagram-v2
+  s0: Chat connected
+  s1: Worker waits for terminal approval
+  s2: Chat declined its approval
+  s3: Connection lost
+  s4: Disconnected message rejected
+  [*] --> s0
+  s0 --> s1: worker asks for approval
+  s1 --> s2: chat asks for approval
+  s2 --> s3: transport closes
+  s3 --> s4: user sends another message

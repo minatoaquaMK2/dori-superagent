@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+121 |     conversation.state = { kind: "running", turnId: null };
+122 |     f.store.save();
+123 |     const reloaded = new Store(`${f.root}/state.json`);
+124 |     const recovered = new Engine(reloaded, f.rpc, `${f.root}/codex.sock`);
+125 |     await recovered.initialize();
+126 |     expect(reloaded.conversation("chat").state.kind).toBe("idle");
+                                                           ^
+error: expect(received).toBe(expected)
+
+Expected: "idle"
+Received: "disconnected"
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-8p2BUq/verification/herdr-chat/profile-runtime.test.ts:126:54)
+(fail) an ACP run interrupted before session creation releases the composer without replay [19.18ms]
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [41.00ms]

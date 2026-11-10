@@ -1,0 +1,27 @@
+bun test v1.4.4 (38afee6c8)
+
+verification/herdr-chat/runtime.test.ts:
+(pass) crash at thread/start leaves durable intent and recovery releases work that never ran [45.12ms]
+66 |       const task = store.state.tasks[0];
+67 |       if (!task) throw new Error("Durable task disappeared");
+68 |       const oldStarts = turnStarts;
+69 |       await engine.tasks.dispatch(store.conversation("chat"), "same-call", { title: "Duplicate", prompt: "Retry" });
+70 |       expect(turnStarts).toBe(oldStarts);
+71 |       expect(task.state.kind).not.toBe("launching");
+                                       ^
+error: expect(received).not.toBe(expected)
+
+Expected: not "launching"
+
+      at <anonymous> (/Users/eric/Documents/Project/dori-chat-formal/verification/herdr-chat/runtime.test.ts:71:35)
+(fail) crash at turn/start leaves durable intent and recovery releases work that never ran [42.42ms]
+(pass) a finished dispatch call stays deduplicated across reload [14.57ms]
+(pass) duplicate completed result keeps one persisted report and context [14.28ms]
+(pass) duplicate failed result keeps one persisted report and context [12.20ms]
+(pass) duplicate interrupted result keeps one persisted report and context [13.09ms]
+(pass) worker approval remains unanswered by the bridge; chat approval is declined [24.38ms]
+
+ 6 pass
+ 1 fail
+ 28 expect() calls
+Ran 7 tests across 1 file. [185.00ms]

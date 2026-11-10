@@ -1,0 +1,21 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-recovery.test.ts:
+(pass) recovery releases empty tasks without replay or duplicate reporting [31.95ms]
+(pass) recovery releases completed tasks without replay or duplicate reporting [634.25ms]
+
+verification/herdr-chat/runtime.test.ts:
+(pass) crash at thread/start leaves durable intent and recovery releases work that never ran [58.34ms]
+(pass) crash at turn/start leaves durable intent and recovery releases work that never ran [42.51ms]
+(pass) a finished dispatch call stays deduplicated across reload [14.34ms]
+(pass) duplicate completed result keeps one persisted report and context [13.66ms]
+(pass) duplicate failed result keeps one persisted report and context [12.97ms]
+(pass) duplicate interrupted result keeps one persisted report and context [12.78ms]
+(pass) worker approval remains unanswered by the bridge; chat approval is declined [24.50ms]
+(pass) terminal failure with an unconfirmed result remains disconnected [19.16ms]
+(pass) recovery restores a persisted reported outcome without duplicating context [13.96ms]
+
+ 11 pass
+ 0 fail
+ 38 expect() calls
+Ran 11 tests across 2 files. [1182.00ms]

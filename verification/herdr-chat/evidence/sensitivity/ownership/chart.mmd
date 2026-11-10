@@ -1,0 +1,27 @@
+---
+title: "Approval ownership and disconnected admission"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks ChatNeverApproves or DisconnectedRejectsNewWork or TerminalOwnsWorkerApproval
+    lg1: Path to the ChatNeverApproves or DisconnectedRejectsNewWork or TerminalOwnsWorkerApproval bug
+  }
+  class lg0 breaks
+  class lg1 bugPath
+  s0: Chat connected
+  s1: Bridge answered worker approval
+  s2: Bridge answered worker approval#59; Chat approved operation
+  s3: Bridge answered worker approval#59; Chat approved operation#59; Disconnected message accepted
+  [*] --> s0
+  s0 --> s1: worker asks for approval
+  s1 --> s2: chat asks for approval
+  s2 --> s2: transport closes
+  s2 --> s3: user sends another message
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 bugPath
+  class s1 breaks
+  class s1 bugPath
+  class s2 breaks
+  class s2 bugPath
+  class s3 breaks
+  class s3 bugPath

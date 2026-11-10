@@ -1,0 +1,30 @@
+---
+title: "CLI, model, and reasoning effort are one profile"
+---
+stateDiagram-v2
+  state "Legend" as legend {
+    lg0: Breaks TaskProfileFrozen or ValidProfile or ValidWorkerProfile
+    lg1: Path to the TaskProfileFrozen or ValidProfile or ValidWorkerProfile bug
+  }
+  class lg0 breaks
+  class lg1 bugPath
+  s0: 配置已确认
+  s1: 校验 CLI#12289;模型和强度
+  s2: 配置已确认#65288;无效组合#65289;
+  s3: 配置已确认#65288;旧任务被改写#65289;
+  s4: 配置已确认#65288;无效组合#65289;#65288;执行配置无效#65289;
+  [*] --> s0
+  s0 --> s0: 将本轮配置固定到新任务
+  s0 --> s1: 选择配置
+  s1 --> s2: 接受配置
+  s1 --> s3: 接受配置
+  s2 --> s4: 将本轮配置固定到新任务
+  classDef breaks fill:#ffecee,stroke:#e72e3b,stroke-width:2.5px,color:#cd2834
+  class s0 bugPath
+  class s1 bugPath
+  class s2 breaks
+  class s2 bugPath
+  class s3 breaks
+  class s3 bugPath
+  class s4 breaks
+  class s4 bugPath

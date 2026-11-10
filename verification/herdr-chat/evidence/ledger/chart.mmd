@@ -1,0 +1,34 @@
+---
+title: "One dispatch identity and one returned outcome"
+---
+stateDiagram-v2
+  s0: No dispatch
+  s1: Intent saved
+  s2: One worker started
+  s3: Worker returned completed
+  s4: Worker returned failed
+  s5: Worker returned interrupted
+  s6: Chat shows completed once
+  s7: Chat shows failed once
+  s8: Chat shows interrupted once
+  s9: Repeated completed ignored
+  s10: Repeated failed ignored
+  s11: Repeated interrupted ignored
+  s12: Repeated dispatch ignored#59; completed
+  s13: Repeated dispatch ignored#59; failed
+  s14: Repeated dispatch ignored#59; interrupted
+  [*] --> s0
+  s0 --> s1: save task
+  s1 --> s2: start worker
+  s2 --> s3: worker finishes
+  s2 --> s4: worker finishes
+  s2 --> s5: worker finishes
+  s3 --> s6: return outcome to chat
+  s4 --> s7: return outcome to chat
+  s5 --> s8: return outcome to chat
+  s6 --> s9: same completion arrives again
+  s7 --> s10: same completion arrives again
+  s8 --> s11: same completion arrives again
+  s9 --> s12: same tool call arrives again
+  s10 --> s13: same tool call arrives again
+  s11 --> s14: same tool call arrives again

@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+60 |     await until(() => f.requests.some((request) => request.method === "turn/start"));
+61 |     expect(f.requests.find((request) => request.method === "turn/start")?.params).toMatchObject({
+62 |       model: "model-a",
+63 |       effort: "low",
+64 |     });
+65 |     expect((await f.request("/configure", { ...configure, requestId: "busy", expectedRevision: 1 })).status).toBe(400);
+                                                                                                                  ^
+error: expect(received).toBe(expected)
+
+Expected: 400
+Received: 202
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-gQ6HVd/test/desktop-profile.test.ts:65:110)
+(fail) composer profile uses CLI config and freezes each accepted request [24.48ms]
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 10 expect() calls
+Ran 1 test across 6 files. [46.00ms]

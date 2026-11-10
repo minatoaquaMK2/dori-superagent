@@ -1,0 +1,23 @@
+---
+title: "Accepted profile and scoped host operation"
+---
+stateDiagram-v2
+  s0: Composer ready
+  s1: New profile selected
+  s2: Reply uses accepted profile
+  s3: Reply finished without a task
+  s4: Reply running#59; task identity saved
+  s5: Reply disconnected#59; new effects denied
+  s6: Reply finished#59; receipt retained
+  s7: Reply disconnected#59; receipt retained
+  s8: Task keeps origin after selection changes
+  [*] --> s0
+  s0 --> s1: choose CLI, model and effort
+  s0 --> s2: send message
+  s1 --> s2: send message
+  s2 --> s3: reply ends
+  s2 --> s4: dispatch with accepted profile
+  s2 --> s5: provider session closes
+  s4 --> s6: reply ends
+  s4 --> s7: provider session closes
+  s6 --> s8: choose CLI, model and effort

@@ -3,6 +3,7 @@
   "entry": [
     "skills/dori-mode/scripts/src/cli.ts",
     "test/**/*.test.ts",
+    "test/desktop-recovery-case.ts",
     "skills/dori-mode/scripts/test/**/*.test.ts",
     "skills/dori-mode/scripts/test/record-fetch.ts"
   ],
@@ -13,5 +14,6 @@
     "skills/dori-mode/scripts/src/**/*.ts",
     "skills/dori-mode/scripts/test/**/*.ts"
   ],
-  "ignoreExportsUsedInFile": true
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["codex"]
 }
