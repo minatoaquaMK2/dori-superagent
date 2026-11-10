@@ -17,6 +17,16 @@ type Binding = {
   replied: boolean;
 };
 
+export function agentMessage(params: unknown): { sessionId: string; text: string } | null {
+  const message = z
+    .object({ sessionId: z.string(), update: z.object({ sessionUpdate: z.string() }).passthrough() })
+    .parse(params);
+  if (message.update.sessionUpdate !== "agent_message_chunk") return null;
+  const content = z.object({ type: z.string() }).passthrough().parse(message.update["content"]);
+  if (content.type !== "text") return null;
+  return { sessionId: message.sessionId, text: z.string().parse(content["text"]) };
+}
+
 export class AcpChats {
   private sessions = new Map<string, Binding>();
   url = "";
@@ -55,23 +65,8 @@ export class AcpChats {
     };
     session.onUpdate = (message) => {
       if (message.method !== "session/update" || !binding.run) return;
-      const update = z
-        .object({
-          sessionId: z.string(),
-          update: z
-            .object({
-              sessionUpdate: z.string(),
-              content: z.object({ type: z.string(), text: z.string().optional() }).optional(),
-            })
-            .passthrough(),
-        })
-        .parse(message.params);
-      if (
-        update.sessionId !== session.id ||
-        update.update.sessionUpdate !== "agent_message_chunk" ||
-        update.update.content?.type !== "text"
-      )
-        return;
+      const update = agentMessage(message.params);
+      if (!update || update.sessionId !== session.id) return;
       binding.replied = true;
       void this.event(
         {
@@ -80,7 +75,7 @@ export class AcpChats {
             threadId: session.id,
             turnId: binding.run.origin.run,
             itemId: binding.run.origin.run,
-            delta: update.update.content.text ?? "",
+            delta: update.text,
           },
         },
         provider,
