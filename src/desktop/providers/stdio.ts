@@ -87,6 +87,7 @@ export class StdioRpc {
   private fail(error: Error): void {
     if (this.closed) return;
     this.closed = true;
+    this.child.kill();
     for (const pending of this.pending.values()) {
       clearTimeout(pending.timer);
       pending.reject(error);

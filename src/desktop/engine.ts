@@ -39,6 +39,8 @@ export class Engine {
         for (const conversation of store.state.conversations)
           if (conversation.activeSegment === segment) {
             conversation.state = { kind: "disconnected", reason };
+            const run = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
+            if (run) run.state = "unknown";
             store.save(conversation);
           }
       },

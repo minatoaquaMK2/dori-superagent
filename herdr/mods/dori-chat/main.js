@@ -94,6 +94,8 @@ export default class Chat extends View {
           `/snapshot?conversation=${encodeURIComponent(this.context.conversation)}&after=${this.revision}`,
         );
         if (data) {
+          if (!Array.isArray(data.catalog) || !data.profile || !Array.isArray(data.preferences))
+            throw new Error("聊天服务版本过旧，请重新启动服务后再打开工作台。草稿已保留。");
           this.entries = data.entries;
           this.revision = data.revision;
           this.state = data.state;

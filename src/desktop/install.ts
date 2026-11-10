@@ -14,7 +14,11 @@ async function connection(file: string) {
       headers: { authorization: `Bearer ${config.token}` },
       signal: AbortSignal.timeout(1000),
     });
-    if (response.ok && z.object({ connected: z.boolean() }).parse(await response.json()).connected) return config;
+    if (
+      response.ok &&
+      z.object({ protocolVersion: z.literal(2), connected: z.boolean() }).parse(await response.json()).connected
+    )
+      return config;
   } catch {}
   return null;
 }
@@ -33,7 +37,10 @@ async function startBridge() {
       if (error instanceof Error && "code" in error && error.code === "ESRCH") alive = false;
       else throw error;
     }
-    if (alive) throw new Error(`The bridge is disconnected (${pid}); inspect ${paths.bridgeLog} before restarting it.`);
+    if (alive)
+      throw new Error(
+        `The running chat bridge (${pid}) is disconnected or uses an older protocol. Restart that bridge before installing this chat version; inspect ${paths.bridgeLog}.`,
+      );
     unlinkSync(paths.lock);
   }
   mkdirSync(paths.home, { recursive: true, mode: 0o700 });
@@ -67,12 +74,12 @@ const spacesSchema = z.object({
 
 export async function install(cwd: string): Promise<void> {
   const folder = realpathSync(resolve(cwd));
+  const config = await startBridge();
   const appHome = resolve(process.env["HERDR_APP_HOME"] ?? join(homedir(), ".config", "herdr-app"));
   const mod = join(appHome, "mods", "dori-chat");
   mkdirSync(mod, { recursive: true });
   cpSync(resolve(import.meta.dir, "../../herdr/mods/dori-chat"), mod, { recursive: true });
   await command(["herdr-app", "check", mod]);
-  const config = await startBridge();
   let spaces = spacesSchema.parse(JSON.parse(await command(["herdr-app", "ls"]))).spaces;
   let space = spaces.find((space) => space.folder === folder);
   if (!space) {

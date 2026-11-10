@@ -23,7 +23,7 @@ export function serve(engine: Engine, token: string) {
         return new Response("Unauthorized", { status: 401 });
       try {
         if (request.method === "GET" && url.pathname === "/health")
-          return Response.json({ connected: engine.connected || engine.nativeProviders });
+          return Response.json({ protocolVersion: 2, connected: engine.connected || engine.nativeProviders });
         if (request.method === "GET" && url.pathname === "/snapshot") {
           const conversation = engine.store.conversation(url.searchParams.get("conversation") ?? "");
           if (String(conversation.revision) === url.searchParams.get("after"))

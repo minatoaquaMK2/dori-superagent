@@ -5,11 +5,10 @@ import type { Envelope } from "../rpc.ts";
 import { chatInstructions } from "../tools.ts";
 import { AcpSession } from "./acp-session.ts";
 
+type Binding = { session: AcpSession; token: string; conversation: string; segment: string; run: MainRun | null };
+
 export class AcpChats {
-  private sessions = new Map<
-    string,
-    { session: AcpSession; token: string; conversation: string; segment: string; run: MainRun | null }
-  >();
+  private sessions = new Map<string, Binding>();
   url = "";
   readonly epoch = crypto.randomUUID();
   constructor(
@@ -24,15 +23,18 @@ export class AcpChats {
       url: this.url,
       token,
     });
-    const binding = {
+    const binding: Binding = {
       session,
       token,
       conversation: conversation.conversation,
       segment: segment.id,
-      run: null as MainRun | null,
+      run: null,
     };
     this.sessions.set(segment.id, binding);
-    session.rpc.onClose = (error) => this.disconnected(segment.id, error.message);
+    session.rpc.onClose = (error) => {
+      this.sessions.delete(segment.id);
+      this.disconnected(segment.id, error.message);
+    };
     session.onUpdate = (message) => {
       if (message.method !== "session/update" || !binding.run) return;
       const update = z
@@ -78,6 +80,7 @@ export class AcpChats {
       if (effort !== segment.profile.resolved.effort) throw new Error("CLI 实际强度与所选配置不同，未发送消息");
       return session.id;
     } catch (error) {
+      this.sessions.delete(segment.id);
       session.close();
       throw error;
     }
@@ -114,7 +117,10 @@ export class AcpChats {
           this.epoch,
         );
       })
-      .catch((error: unknown) => this.disconnected(segment.id, String(error)));
+      .catch((error: unknown) => {
+        this.disconnected(segment.id, String(error));
+        this.retire(segment.id);
+      });
     return turnId;
   }
 
