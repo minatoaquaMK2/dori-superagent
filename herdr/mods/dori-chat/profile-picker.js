@@ -32,18 +32,22 @@ const row = (id, label, selected, reason, action) =>
 
 export function profilePicker(chat, locked) {
   const selected = chat.profile?.selection;
-  const catalog = chat.catalog.find((catalog) => catalog.provider === selected?.provider);
-  const model = catalog?.models.find((model) => model.id === selected?.modelChoice);
-  const modelLabel = model?.label ?? selected?.modelChoice ?? "正在读取模型…";
+  const activeCatalog = chat.catalog.find((catalog) => catalog.provider === selected?.provider);
+  const activeModel = activeCatalog?.models.find((model) => model.id === selected?.modelChoice);
+  const modelLabel = activeModel?.label ?? selected?.modelChoice ?? "正在读取模型…";
+  const provider = chat.menu?.id === "model-picker" ? chat.menu.provider : selected?.provider;
+  const catalog = chat.catalog.find((catalog) => catalog.provider === provider);
+  const model = provider === selected?.provider ? activeModel : null;
   const surface = () =>
     v_flex().w(320).p(8).gap(3).rounded(10).bg(theme().popover).border_1().border_color(theme().border);
   const popup = (id, label, content) =>
     Popover.new(id)
       .anchor("top_left")
-      .open(chat.menu === id && !locked)
+      .open(chat.menu?.id === id && !locked)
       .on_open_change((open, cx) => {
-        if (open && !locked) chat.menu = id;
-        else if (chat.menu === id) chat.menu = null;
+        if (open && !locked && chat.menu?.id !== id)
+          chat.menu = id === "model-picker" ? { id, provider: selected?.provider } : { id };
+        else if (!open && chat.menu?.id === id) chat.menu = null;
         cx.notify();
       })
       .trigger(trigger(label, locked))
@@ -56,7 +60,14 @@ export function profilePicker(chat, locked) {
     ),
   );
   const models = surface()
-    .child(div().px(10).py(5).text_size(11).text_color(theme().dim).child("模型"))
+    .child(
+      div()
+        .px(10)
+        .py(5)
+        .text_size(11)
+        .text_color(theme().dim)
+        .child(`${catalog?.label ?? "CLI"} 模型`),
+    )
     .child(
       v_flex()
         .id("model-options")
@@ -65,7 +76,7 @@ export function profilePicker(chat, locked) {
         .gap(3)
         .children(
           (catalog?.models ?? []).map((item) =>
-            row(`model-${item.id}`, item.label, item.id === selected?.modelChoice, item.reason, (_event, cx) => {
+            row(`model-${item.id}`, item.label, item.id === model?.id, item.reason, (_event, cx) => {
               chooseModel(chat, item.id, cx);
             }),
           ),
@@ -103,12 +114,19 @@ export function profilePicker(chat, locked) {
       ),
     )
     .when(model?.effort.kind !== "choices", (el) =>
-      el.child(div().px(10).py(8).text_size(11).text_color(theme().dim).child("此模型不提供强度选项")),
+      el.child(
+        div()
+          .px(10)
+          .py(8)
+          .text_size(11)
+          .text_color(theme().dim)
+          .child(model ? "此模型不提供强度选项" : "选择模型后可调整强度"),
+      ),
     );
   return h_flex()
     .items_center()
     .gap(6)
-    .child(popup("cli-picker", catalog?.label ?? "CLI", providers))
+    .child(popup("cli-picker", activeCatalog?.label ?? "CLI", providers))
     .child(
       popup("model-picker", `${modelLabel}${selected?.effortChoice ? ` · ${selected.effortChoice}` : ""}`, models),
     );

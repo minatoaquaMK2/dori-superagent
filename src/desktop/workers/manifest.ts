@@ -64,6 +64,8 @@ export function prepareNativeWorker(task: Task): string[] {
       path,
       "--permission-mode",
       "dangerous",
+      "--respect-workspace-trust",
+      "false",
       "--model",
       settings.model,
       "--export",

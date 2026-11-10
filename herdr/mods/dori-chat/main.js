@@ -46,7 +46,11 @@ export default class Chat extends View {
           }
         }
         if (command === "open-cli" || command === "open-model") {
-          if (!locked(this)) this.menu = command === "open-cli" ? "cli-picker" : "model-picker";
+          if (!locked(this))
+            this.menu =
+              command === "open-cli"
+                ? { id: "cli-picker" }
+                : { id: "model-picker", provider: this.profile?.selection.provider };
         }
         if (command.startsWith("choose-cli:")) chooseProvider(this, command.slice(11), cx);
         if (command.startsWith("choose-model:")) chooseModel(this, command.slice(13), cx);
