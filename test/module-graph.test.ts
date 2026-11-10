@@ -5,7 +5,6 @@ import { Glob } from "bun";
 
 const ROOT = resolve(import.meta.dir, "..");
 const TREES = ["src", "skills/dori-mode/scripts/src"];
-// The skill CLI runs its command at import; it is an entry point, never imported.
 const ENTRY_ONLY = new Set(["skills/dori-mode/scripts/src/cli.ts"]);
 
 const modules = (): string[] =>

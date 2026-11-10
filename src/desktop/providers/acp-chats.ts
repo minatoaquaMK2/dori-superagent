@@ -2,11 +2,14 @@ import { join } from "node:path";
 import { z } from "zod";
 import type { Conversation, MainRun, Segment } from "../model.ts";
 import type { Envelope } from "../rpc.ts";
+import type { Provider } from "../profile.ts";
 import { chatInstructions } from "../tools.ts";
 import { AcpSession } from "./acp-session.ts";
+import { DevinSession } from "./devin-session.ts";
 
 type Binding = {
-  session: AcpSession;
+  session: AcpSession | DevinSession;
+  provider: Provider;
   token: string;
   conversation: string;
   segment: string;
@@ -20,18 +23,22 @@ export class AcpChats {
   readonly epoch = crypto.randomUUID();
   constructor(
     private readonly directory: string,
-    private readonly event: (event: Envelope, epoch: string) => Promise<void>,
+    private readonly event: (event: Envelope, provider: Provider, epoch: string) => Promise<void>,
     private readonly disconnected: (segment: string, reason: string) => void,
   ) {}
 
   async create(conversation: Conversation, segment: Segment): Promise<string> {
     const token = crypto.randomUUID() + crypto.randomUUID();
-    const session = new AcpSession(join(this.directory, "main", segment.id), conversation.cwd, this.directory, {
-      url: this.url,
-      token,
-    });
+    const directory = join(this.directory, "main", segment.id);
+    const scoped = { url: this.url, token };
+    const provider = segment.profile.selection.provider;
+    const session =
+      provider === "devin"
+        ? new DevinSession(directory, this.directory, scoped)
+        : new AcpSession(directory, conversation.cwd, this.directory, scoped);
     const binding: Binding = {
       session,
+      provider,
       token,
       conversation: conversation.conversation,
       segment: segment.id,
@@ -44,7 +51,7 @@ export class AcpChats {
       this.disconnected(segment.id, error.message);
     };
     session.onNotice = (text) => {
-      void this.event({ method: "chat/notice", params: { threadId: session.id, text } }, this.epoch);
+      void this.event({ method: "chat/notice", params: { threadId: session.id, text } }, provider, this.epoch);
     };
     session.onUpdate = (message) => {
       if (message.method !== "session/update" || !binding.run) return;
@@ -76,19 +83,18 @@ export class AcpChats {
             delta: update.update.content.text ?? "",
           },
         },
+        provider,
         this.epoch,
       );
     };
     try {
       await session.initialize();
-      await session.rpc.request("session/set_model", {
-        sessionId: session.id,
-        modelId: segment.profile.resolved.model,
-      });
-      const applied = await session.load();
-      if (applied.models?.currentModelId !== segment.profile.resolved.model)
+      await session.set("model", segment.profile.selection.modelChoice);
+      if (segment.profile.selection.effortChoice !== null)
+        await session.set("thought_level", segment.profile.selection.effortChoice);
+      if ((await session.effectiveModel()) !== segment.profile.resolved.model)
         throw new Error("CLI 实际模型与所选配置不同，未发送消息");
-      const effort = applied.configOptions.find((option) => option.id === "thought_level")?.currentValue ?? null;
+      const effort = session.data?.configOptions.find((option) => option.id === "thought_level")?.currentValue ?? null;
       if (effort !== segment.profile.resolved.effort) throw new Error("CLI 实际强度与所选配置不同，未发送消息");
       return session.id;
     } catch (error) {
@@ -105,8 +111,8 @@ export class AcpChats {
     binding.replied = false;
     const turnId = run.origin.run;
     const params = { threadId: binding.session.id, turn: { id: turnId, status: "inProgress", items: [] } };
-    void this.event({ method: "turn/started", params }, this.epoch);
-    const text = `${chatInstructions}\n\nFor both herdr_host tools, use operationId=${run.operationId}. This ID identifies only this user turn.\n\n${prompt}`;
+    void this.event({ method: "turn/started", params }, binding.provider, this.epoch);
+    const text = `${chatInstructions}\n\n${binding.session.instructions(run.operationId)}\n\n${prompt}`;
     void binding.session.rpc
       .request("session/prompt", { sessionId: binding.session.id, prompt: [{ type: "text", text }] }, 600_000)
       .then((value) => {
@@ -122,6 +128,7 @@ export class AcpChats {
                 text: "CLI 已结束本轮，但没有返回文字或工具结果。可以重新描述问题后发送。",
               },
             },
+            binding.provider,
             this.epoch,
           );
         binding.run = null;
@@ -138,6 +145,7 @@ export class AcpChats {
               },
             },
           },
+          binding.provider,
           this.epoch,
         );
       })

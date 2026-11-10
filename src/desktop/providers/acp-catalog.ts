@@ -4,17 +4,26 @@ import {
   type ModelChoice,
   type Profile,
   type Selection,
+  providerNames,
   revision,
   validateSelection,
 } from "../profile.ts";
 import { AcpSession } from "./acp-session.ts";
+import { DevinSession } from "./devin-session.ts";
 
 export class AcpCatalog {
   private resolved = new Map<string, Map<string, string>>();
-  constructor(private readonly directory: string) {}
+  constructor(
+    private readonly directory: string,
+    private readonly provider: "antigravity" | "devin",
+  ) {}
 
   async read(cwd: string): Promise<Catalog> {
-    const session = new AcpSession(join(this.directory, "catalogs", crypto.randomUUID()), cwd, this.directory);
+    const directory = join(this.directory, "catalogs", crypto.randomUUID());
+    const session =
+      this.provider === "devin"
+        ? new DevinSession(directory, this.directory)
+        : new AcpSession(directory, cwd, this.directory);
     try {
       const initial = await session.initialize();
       const defaultModel = initial.configOptions.find((option) => option.id === "model")?.currentValue;
@@ -24,14 +33,21 @@ export class AcpCatalog {
       const models: ModelChoice[] = [];
       const effective = new Map<string, string>();
       for (const option of options) {
+        if (this.provider === "devin" && option.value.startsWith("fusion-")) {
+          models.push({
+            id: option.value,
+            label: option.name,
+            effort: { kind: "unsupported" },
+            reason: "Fusion 会启动额外代理，目前不符合单会话任务所有权约束",
+          });
+          continue;
+        }
         const result = await session.set("model", option.value);
         const thought = result.configOptions.find((option) => option.id === "thought_level");
         const efforts = thought?.options ?? [];
         for (const effort of efforts.length ? efforts : [{ value: "", name: "" }]) {
           if (effort.value) await session.set("thought_level", effort.value);
-          const applied = await session.load();
-          if (!applied.models?.currentModelId) throw new Error("CLI 未确认实际模型 ID");
-          effective.set(JSON.stringify([option.value, effort.value || null]), applied.models.currentModelId);
+          effective.set(JSON.stringify([option.value, effort.value || null]), await session.effectiveModel());
         }
         models.push({
           id: option.value,
@@ -47,12 +63,12 @@ export class AcpCatalog {
         });
       }
       const catalog: Catalog = {
-        provider: "antigravity",
-        label: "Antigravity",
+        provider: this.provider,
+        label: providerNames[this.provider],
         revision: revision({ models, effective: [...effective] }),
         status: "ready",
         models,
-        defaultSelection: { provider: "antigravity", modelChoice: defaultModel, effortChoice: defaultEffort },
+        defaultSelection: { provider: this.provider, modelChoice: defaultModel, effortChoice: defaultEffort },
       };
       this.resolved.set(catalog.revision, effective);
       return catalog;
@@ -71,7 +87,7 @@ export class AcpCatalog {
       id: crypto.randomUUID(),
       selection,
       catalogRevision: catalog.revision,
-      resolved: { provider: "antigravity", model, effort: selection.effortChoice },
+      resolved: { provider: this.provider, model, effort: selection.effortChoice },
     };
   }
 }

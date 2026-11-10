@@ -1,7 +1,6 @@
 import { type Conversation, configureSchema } from "./model.ts";
 import { type Catalog, type Profile, type Provider, type Selection, unavailable } from "./profile.ts";
 import { AcpCatalog } from "./providers/acp-catalog.ts";
-import { devinCatalog } from "./providers/devin.ts";
 import { CodexCatalog } from "./providers/codex.ts";
 import type { Rpc } from "./rpc.ts";
 import type { Store } from "./store.ts";
@@ -9,6 +8,7 @@ import type { Store } from "./store.ts";
 export class Configuration {
   private readonly codex: CodexCatalog;
   private readonly acp: AcpCatalog;
+  private readonly devin: AcpCatalog;
   private catalogs = new Map<string, Catalog[]>();
   constructor(
     private readonly store: Store,
@@ -17,7 +17,8 @@ export class Configuration {
     private readonly retire: (segment: string) => void = () => {},
   ) {
     this.codex = new CodexCatalog(rpc);
-    this.acp = new AcpCatalog(store.directory);
+    this.acp = new AcpCatalog(store.directory, "antigravity");
+    this.devin = new AcpCatalog(store.directory, "devin");
   }
 
   async refresh(cwd: string): Promise<Catalog[]> {
@@ -47,7 +48,7 @@ export class Configuration {
           codex,
           ...(await Promise.all([
             read("antigravity", () => this.acp.read(cwd)),
-            read("devin", () => devinCatalog(this.store.directory)),
+            read("devin", () => this.devin.read(cwd)),
           ])),
         ]
       : [codex];
@@ -80,7 +81,7 @@ export class Configuration {
     const catalog = this.list(cwd).find((catalog) => catalog.provider === selection.provider);
     if (!catalog || catalog.revision !== catalogRevision) throw new Error("模型目录已更新，请刷新后重试。草稿已保留。");
     if (selection.provider === "antigravity") return this.acp.resolve(catalog, selection);
-    if (selection.provider !== "codex") throw new Error(catalog.reason ?? "此 CLI 尚不可用");
+    if (selection.provider === "devin") return this.devin.resolve(catalog, selection);
     return this.codex.resolve(catalog, selection);
   }
 

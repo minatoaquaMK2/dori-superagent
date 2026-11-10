@@ -28,9 +28,19 @@ test.skipIf(process.platform !== "darwin")(
         },
       },
     });
-    const program = `import json, pathlib, socket, sys, urllib.request
+    const program = `import json, pathlib, socket, sqlite3, sys, urllib.request
 session, root = map(pathlib.Path, sys.argv[1:3])
 result = {"own": (session / "binding.json").read_text()}
+database = sqlite3.connect(session / "state.db")
+database.execute("CREATE TABLE owned (value TEXT)")
+database.close()
+result["database"] = "created"
+result["ancestor_metadata"] = root.is_dir()
+try:
+    list(root.iterdir())
+    result["ancestor_contents"] = "readable"
+except PermissionError:
+    result["ancestor_contents"] = "denied"
 for name, path in [("admin", root / "connection.json"), ("worker", root / "workers/other/manifest.json"), ("alias", session / "alias.json")]:
     try:
         path.read_text()
@@ -81,6 +91,9 @@ print(json.dumps(result))`;
       expect({ code, stderr }).toEqual({ code: 0, stderr: "" });
       expect(JSON.parse(stdout)).toEqual({
         own: "scoped-token",
+        database: "created",
+        ancestor_metadata: true,
+        ancestor_contents: "denied",
         admin: "denied",
         worker: "denied",
         alias: "denied",

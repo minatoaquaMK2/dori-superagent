@@ -71,7 +71,15 @@ export class AcpSession {
           {
             name: "herdr_host",
             command: process.execPath,
-            args: [cli, "mcp-host", join(state, "binding.json")],
+            args: [
+              "--config=/dev/null",
+              "--no-env-file",
+              "--no-macros",
+              "--no-install",
+              cli,
+              "mcp-host",
+              join(state, "binding.json"),
+            ],
             env: [],
           },
         ]
@@ -144,6 +152,14 @@ export class AcpSession {
       await this.rpc.request("session/load", { sessionId: this.id, cwd: this.cwd, mcpServers: this.mcpServers }),
     );
     return this.data;
+  }
+  async effectiveModel(): Promise<string> {
+    const applied = await this.load();
+    if (!applied.models?.currentModelId) throw new Error("CLI 未确认实际模型 ID");
+    return applied.models.currentModelId;
+  }
+  instructions(operation: string): string {
+    return `For both herdr_host tools, use operationId=${operation}. This ID identifies only this user turn.`;
   }
   close(): void {
     this.rpc.close();

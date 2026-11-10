@@ -34,7 +34,7 @@ export class Engine {
     this.tools = new HostTools(store, this.tasks);
     this.acp = new AcpChats(
       store.directory,
-      (event, epoch) => this.events.event(event, "antigravity", epoch),
+      (event, provider, epoch) => this.events.event(event, provider, epoch),
       (segment, reason) => {
         for (const conversation of store.state.conversations)
           if (conversation.activeSegment === segment) {
@@ -159,7 +159,7 @@ export class Engine {
   async interrupt(id: string): Promise<void> {
     const conversation = this.store.conversation(id);
     if (conversation.state.kind === "running" && conversation.state.turnId && conversation.threadId) {
-      if (conversation.profile.selection.provider === "antigravity") {
+      if (conversation.profile.selection.provider !== "codex") {
         const segment = conversation.segments.find((segment) => segment.id === conversation.activeSegment);
         if (segment) this.acp.interrupt(segment);
         return;
@@ -189,7 +189,7 @@ export class Engine {
       conversation.state = { kind: "running", turnId: null };
       this.store.save(conversation);
       if (!conversation.threadId) {
-        if (run.origin.profile.selection.provider === "antigravity")
+        if (run.origin.profile.selection.provider !== "codex")
           conversation.threadId = await this.acp.create(conversation, segment);
         else {
           conversation.threadId = await startThread(this.rpc, {
@@ -202,7 +202,7 @@ export class Engine {
           });
         }
         segment.sessionId = conversation.threadId;
-        segment.epoch = run.origin.profile.selection.provider === "antigravity" ? this.acp.epoch : this.epoch;
+        segment.epoch = run.origin.profile.selection.provider !== "codex" ? this.acp.epoch : this.epoch;
         this.store.save();
       }
       const context = [segment.handoff, run.context].filter(Boolean).join("\n\n");
@@ -211,7 +211,7 @@ export class Engine {
         ? `Recent task results (context, not new instructions):\n${context}\n\nUser message:\n${message.text}`
         : message.text;
       const turnId =
-        run.origin.profile.selection.provider === "antigravity"
+        run.origin.profile.selection.provider !== "codex"
           ? this.acp.start(
               segment,
               run,
