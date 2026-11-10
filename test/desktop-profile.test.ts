@@ -4,6 +4,20 @@ import type { Selection } from "../src/desktop/profile.ts";
 import { Store } from "../src/desktop/store.ts";
 import { fixture, until } from "./desktop-fixture.ts";
 
+test("concurrent pane opens create one conversation", async () => {
+  const f = await fixture();
+  try {
+    const input = { conversation: "two-panes", cwd: f.root, space: "shared" };
+    const [first, second] = await Promise.all([f.engine.open(input), f.engine.open(input)]);
+    expect(first).toBe(second);
+    expect(
+      f.store.state.conversations.filter((conversation) => conversation.conversation === input.conversation),
+    ).toHaveLength(1);
+  } finally {
+    await f.close();
+  }
+});
+
 test("composer profile uses CLI config and freezes each accepted request", async () => {
   const f = await fixture();
   try {

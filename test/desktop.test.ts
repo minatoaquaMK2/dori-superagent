@@ -100,6 +100,7 @@ test("worker result preserves failure and completion identity; terminal owns its
       state: { kind: "running", turnId: "worker-turn" },
       reported: [],
       output: {},
+      runtime: { kind: "codex" },
       origin: {
         conversation: "chat",
         segment: "test",
@@ -173,6 +174,7 @@ test("recovery releases a dispatch that crashed before creating its worker threa
       state: { kind: "launching" },
       reported: [],
       output: {},
+      runtime: { kind: "codex" },
       origin: {
         conversation: "chat",
         segment: "test",

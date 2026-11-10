@@ -1,0 +1,21 @@
+# Main chat implementation reconciliation
+
+The implementation uses the accepted model menu with effort inside it. Codex profiles come from `model/list` and workspace `config/read`. An invalid configured default remains unavailable and cannot send. Version 1 state migrates atomically to explicit historical Codex ownership without inventing its old model settings.
+
+Antigravity main chat runs in a private empty Git workspace. The original project is supplied as an absolute read-only inspection path in the prompt. Its process and children run under a macOS `sandbox-exec` policy that denies filesystem writes outside private runtime storage and denies reads of `~/.gemini/config`. This avoids project and global MCP discovery. Merely disabling default customizations did not isolate inherited MCP startup in the independent probe. The private-cwd policy passed actual authentication, denied a built-in project write, called both scoped host tools, and did not start the inherited project MCP canary. Other platforms remain unavailable until an equivalent policy is verified.
+
+Antigravity catalogs enumerate actual ACP configuration choices. Each model/effort pair is applied and read back with `session/load`, preserving the exact effective model ID for the worker. A new main session also confirms both values before submitting the user prompt. No suffix parsing maps model families to variants.
+
+Devin exposes the installed CLI's actual model catalog. In this account, its MCP policy rejects the Herdr server because it is outside the organization's allowlist. The UI reports that external blocker and does not bypass it. Devin main-chat readiness is incomplete. The native worker and result parser are implemented, but end-to-end Devin main dispatch cannot be claimed from this account. Removing that external policy restriction still requires verified main-chat containment and host-tool activation.
+
+The user subsequently authorized YOLO defaults for Antigravity and Devin workers. Native launches therefore use `agy --dangerously-skip-permissions` and `devin --permission-mode dangerous`. Codex worker policy is unchanged. Main-chat containment remains separate.
+
+Native workers own their interactive CLI until it exits. Stop hooks report results, but the project stays occupied while that CLI remains open. This is deliberate because Devin Stop has no background-quiescence field. Antigravity Stop with `fullyIdle=false` does not report a finished turn. Its `executionNum` repeats across user turns, so the reporter captures the latest transcript `USER_INPUT.step_index` and final text at hook time. The bridge uses that boundary plus session ID for deduplication. A later bridge restart reads private spool files and never relaunches a task.
+
+Codex terminal attachment now precedes the first `turn/start`. Launch checkpoints distinguish an intent from an attempted external effect. Native `hc run` creates a terminal and starts its CLI together; that cannot be described as the same atomic sequence. If attachment acknowledgement is lost, the task remains unknown and is not replayed.
+
+Host tools use one shared handler. Codex carries its authoritative turn ID. ACP tools include a host-issued operation ID and a session-scoped credential. Reusing a committed operation with the same parsed arguments returns the durable receipt; changing arguments conflicts. An inactive run cannot first create a task or explanation.
+
+The official mod commands `open-cli`, `open-model`, `choose-cli:<id>`, `choose-model:<id>`, and `choose-effort:<id>` call the same handlers as the native selectors. They support command-driven verification without claiming native pointer coverage.
+
+Local checks currently cover profile admission and model application, repeated configuration requests, stale revisions, concurrent opens, migration, task terminal ordering, native report identity and session occupancy, and the existing Codex protocol behavior. Real native verification, independent code review, and formal source reconciliation remain the parent coordinator's gates.

@@ -18,7 +18,7 @@ const configSchema = z.object({
 });
 
 export class CodexCatalog {
-  private models: z.infer<typeof modelSchema>[] = [];
+  private models = new Map<string, z.infer<typeof modelSchema>[]>();
   constructor(private readonly rpc: Rpc) {}
 
   async read(cwd: string): Promise<Catalog> {
@@ -29,7 +29,6 @@ export class CodexCatalog {
       models.push(...page.data);
       cursor = page.nextCursor;
     } while (cursor);
-    this.models = models;
     const { config } = configSchema.parse(await this.rpc.request("config/read", { cwd, includeLayers: false }));
     const current = config.model
       ? models.find((model) => model.model === config.model)
@@ -65,13 +64,13 @@ export class CodexCatalog {
           : null,
       },
     };
-    validateSelection(catalog, catalog.defaultSelection!);
+    this.models.set(catalog.revision, models);
     return catalog;
   }
 
   resolve(catalog: Catalog, selection: Selection): Profile {
     validateSelection(catalog, selection);
-    const model = this.models.find((model) => model.id === selection.modelChoice);
+    const model = (this.models.get(catalog.revision) ?? []).find((model) => model.id === selection.modelChoice);
     if (!model) throw new Error("模型目录已改变，请刷新");
     return {
       id: crypto.randomUUID(),

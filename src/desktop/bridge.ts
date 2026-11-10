@@ -34,9 +34,13 @@ export async function runBridge(): Promise<void> {
       unlinkSync(paths.lock);
     } catch {}
   });
-  await ensureServer(paths);
+  try {
+    await ensureServer(paths);
+  } catch (error) {
+    process.stderr.write(`${JSON.stringify({ provider: "codex", error: String(error) })}\n`);
+  }
   const rpc = new Rpc(paths.socket);
-  const engine = new Engine(new Store(paths.state), rpc, paths.socket);
+  const engine = new Engine(new Store(paths.state), rpc, paths.socket, true);
   try {
     await engine.initialize();
   } catch (error) {
@@ -47,11 +51,21 @@ export async function runBridge(): Promise<void> {
   const server = serve(engine, token);
   writeFileSync(paths.connection, JSON.stringify({ url: server.url.origin, token, pid: process.pid }), { mode: 0o600 });
   process.stdout.write(`${JSON.stringify({ ready: true, connection: paths.connection })}\n`);
+  const monitor = setInterval(() => {
+    for (const task of engine.store.state.tasks) if (task.runtime.kind === "native") engine.tasks.native.poll(task);
+  }, 750);
   const stop = () => {
+    clearInterval(monitor);
+    clearInterval(terminals);
+    engine.acp.close();
     server.stop(true);
     rpc.close();
     process.exit(0);
   };
+  const terminals = setInterval(() => {
+    for (const task of engine.store.state.tasks)
+      if (task.runtime.kind === "native") void engine.tasks.native.reconcile(task);
+  }, 5000);
   process.on("SIGTERM", stop);
   process.on("SIGINT", stop);
 }

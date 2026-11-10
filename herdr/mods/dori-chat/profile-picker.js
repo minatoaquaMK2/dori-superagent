@@ -1,3 +1,4 @@
+import { chooseProvider, chooseModel, chooseEffort } from "./profile-actions.js";
 import { div } from "gpui-kit";
 import { h_flex, v_flex, Popover } from "gpui-base";
 import { theme } from "herdr";
@@ -58,20 +59,7 @@ export function profilePicker(chat, locked) {
   const providers = surface().children(
     chat.catalog.map((item) =>
       row(`provider-${item.provider}`, item.label, item.provider === selected?.provider, item.reason, (_event, cx) => {
-        if (locked) return;
-        if (item.status !== "ready") {
-          chat.error = item.reason;
-          cx.notify();
-          return;
-        }
-        const saved = chat.preferences.find((profile) => profile.selection.provider === item.provider)?.selection;
-        const candidate = item.models.find((model) => model.id === saved?.modelChoice);
-        const valid =
-          candidate &&
-          (candidate.effort.kind === "unsupported"
-            ? saved.effortChoice === null
-            : candidate.effort.options.some((option) => option.id === saved.effortChoice && !option.reason));
-        chat.configure(valid ? saved : item.defaultSelection, item.revision, cx);
+        chooseProvider(chat, item.provider, cx);
       }),
     ),
   );
@@ -80,20 +68,7 @@ export function profilePicker(chat, locked) {
     .children(
       (catalog?.models ?? []).map((item) =>
         row(`model-${item.id}`, item.label, item.id === selected?.modelChoice, item.reason, (_event, cx) => {
-          if (locked || item.reason) return;
-          const previous = selected?.effortChoice;
-          const effort =
-            item.effort.kind === "unsupported"
-              ? null
-              : item.effort.options.some((option) => option.id === previous && !option.reason)
-                ? previous
-                : item.effort.defaultId;
-          chat.configure(
-            { provider: catalog.provider, modelChoice: item.id, effortChoice: effort },
-            catalog.revision,
-            cx,
-          );
-          if (previous !== effort) chat.notice = effort ? `已使用此模型默认强度 ${effort}` : "此模型不提供强度选项";
+          chooseModel(chat, item.id, cx);
         }),
       ),
     )
@@ -117,8 +92,7 @@ export function profilePicker(chat, locked) {
             option.id === selected?.effortChoice,
             option.reason,
             (_event, cx) => {
-              if (!locked && !option.reason)
-                chat.configure({ ...selected, effortChoice: option.id }, catalog.revision, cx);
+              chooseEffort(chat, option.id, cx);
             },
           ),
         ),

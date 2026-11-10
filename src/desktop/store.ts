@@ -5,8 +5,10 @@ import { migrateState } from "./migration.ts";
 
 export class Store {
   readonly state: State;
+  readonly directory: string;
   private pendingWrite: ReturnType<typeof setTimeout> | undefined;
   constructor(private readonly file: string) {
+    this.directory = dirname(file);
     mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
     try {
       const raw: unknown = JSON.parse(readFileSync(file, "utf8"));

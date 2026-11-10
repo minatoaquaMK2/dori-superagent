@@ -57,10 +57,12 @@ export function migrateState(input: unknown): State {
         operationId: `legacy:${message.requestId}`,
         state: "accepted",
         turnId: null,
+        receipts: [],
       })),
     })),
     tasks: old.tasks.map((task) => ({
       ...task,
+      runtime: { kind: "codex" },
       launch: task.threadId ? "turn-attempted" : "intent",
       origin: {
         conversation: task.conversation,

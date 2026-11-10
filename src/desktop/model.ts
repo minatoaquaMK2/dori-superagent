@@ -57,6 +57,7 @@ export const runSchema = z.object({
   operationId: id,
   state: z.enum(["accepted", "attempted", "finished", "unknown"]),
   turnId: z.string().nullable(),
+  receipts: z.array(z.object({ tool: z.string(), fingerprint: z.string(), result: z.string() })),
 });
 export type MainRun = z.infer<typeof runSchema>;
 const segmentSchema = z.object({
@@ -114,6 +115,16 @@ const taskSchema = z.object({
   reported: z.array(z.string()),
   output: z.record(z.string(), z.string()),
   origin: originSchema,
+  runtime: z.discriminatedUnion("kind", [
+    z.object({ kind: z.literal("codex") }),
+    z.object({
+      kind: z.literal("native"),
+      directory: z.string(),
+      sessionId: z.string().nullable(),
+      open: z.boolean(),
+      receipts: z.array(z.string()),
+    }),
+  ]),
   launch: z.enum(["intent", "thread-attempted", "thread-created", "turn-attempted", "terminal-attempted", "attached"]),
 });
 export type Task = z.infer<typeof taskSchema>;
@@ -127,5 +138,8 @@ export const dispatchSchema = z.object({ title: z.string().min(1).max(120), prom
 export const connectionSchema = z.object({ url: z.url(), token: z.string().min(32), pid: z.number().int() });
 
 export function activeTask(task: Task): boolean {
-  return ["launching", "running", "disconnected"].includes(task.state.kind);
+  return (
+    (task.runtime.kind === "native" && task.runtime.open) ||
+    ["launching", "running", "disconnected"].includes(task.state.kind)
+  );
 }

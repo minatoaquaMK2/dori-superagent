@@ -1,17 +1,22 @@
 import { type Conversation, configureSchema } from "./model.ts";
-import { type Catalog, type Profile, type Provider, type Selection, legacyProfile, unavailable } from "./profile.ts";
+import { type Catalog, type Profile, type Provider, type Selection, unavailable } from "./profile.ts";
+import { AcpCatalog } from "./providers/acp-catalog.ts";
+import { devinCatalog } from "./providers/devin.ts";
 import { CodexCatalog } from "./providers/codex.ts";
 import type { Rpc } from "./rpc.ts";
 import type { Store } from "./store.ts";
 
 export class Configuration {
   private readonly codex: CodexCatalog;
+  private readonly acp: AcpCatalog;
   private catalogs = new Map<string, Catalog[]>();
   constructor(
     private readonly store: Store,
     rpc: Rpc,
+    private readonly nativeProviders = false,
   ) {
     this.codex = new CodexCatalog(rpc);
+    this.acp = new AcpCatalog(store.directory);
   }
 
   async refresh(cwd: string): Promise<Catalog[]> {
@@ -21,11 +26,30 @@ export class Configuration {
     } catch (error) {
       codex = unavailable("codex", String(error));
     }
-    const catalogs = [
-      codex,
-      unavailable("antigravity", "正在核验 ACP 会话能力"),
-      unavailable("devin", "正在核验 ACP 会话能力"),
-    ];
+    const read = async (provider: Provider, action: () => Promise<Catalog>) => {
+      try {
+        return await action();
+      } catch (error) {
+        return unavailable(
+          provider,
+          String(error),
+          /not found|未安装/i.test(String(error))
+            ? "missingCli"
+            : /login|auth/i.test(String(error))
+              ? "needsLogin"
+              : "catalogUnavailable",
+        );
+      }
+    };
+    const catalogs = this.nativeProviders
+      ? [
+          codex,
+          ...(await Promise.all([
+            read("antigravity", () => this.acp.read(cwd)),
+            read("devin", () => devinCatalog(this.store.directory)),
+          ])),
+        ]
+      : [codex];
     this.catalogs.set(cwd, catalogs);
     return catalogs;
   }
@@ -36,13 +60,25 @@ export class Configuration {
 
   async initial(cwd: string): Promise<Profile> {
     const catalog = (await this.refresh(cwd)).find((catalog) => catalog.provider === "codex");
-    if (!catalog?.defaultSelection || catalog.status !== "ready") return legacyProfile();
-    return this.codex.resolve(catalog, catalog.defaultSelection);
+    if (catalog?.defaultSelection && catalog.status === "ready") {
+      try {
+        return this.codex.resolve(catalog, catalog.defaultSelection);
+      } catch (error) {
+        catalog.reason = String(error);
+      }
+    }
+    return {
+      id: crypto.randomUUID(),
+      selection: { provider: "codex", modelChoice: "unconfigured", effortChoice: null },
+      catalogRevision: catalog?.revision ?? "unavailable",
+      resolved: { provider: "codex", model: null, effort: null },
+    };
   }
 
   resolve(cwd: string, selection: Selection, catalogRevision: string): Profile {
     const catalog = this.list(cwd).find((catalog) => catalog.provider === selection.provider);
     if (!catalog || catalog.revision !== catalogRevision) throw new Error("模型目录已更新，请刷新后重试。草稿已保留。");
+    if (selection.provider === "antigravity") return this.acp.resolve(catalog, selection);
     if (selection.provider !== "codex") throw new Error(catalog.reason ?? "此 CLI 尚不可用");
     return this.codex.resolve(catalog, selection);
   }
@@ -89,6 +125,12 @@ export class Configuration {
 
 export function handoffText(conversation: Conversation): string {
   const text = conversation.entries
+    .filter(
+      (entry) =>
+        entry.kind !== "markdown" ||
+        entry.role !== "user" ||
+        !conversation.runs.some((run) => run.origin.request === entry.id && run.state !== "finished"),
+    )
     .map((entry) =>
       entry.kind === "markdown"
         ? `${entry.role} (${entry.source}): ${entry.text}`

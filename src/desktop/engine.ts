@@ -1,10 +1,13 @@
+import { HostTools } from "./host-tools.ts";
+import { AcpChats } from "./providers/acp-chats.ts";
 import { ChatEvents } from "./chat-events.ts";
 import { Configuration } from "./configuration.ts";
 import { codexSettings } from "./providers/codex.ts";
 import { realpathSync, statSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { type Conversation, openSchema, sendSchema } from "./model.ts";
-import { resumeThread, startThread, startTurn } from "./protocol.ts";
+import { disconnectCodex, recoverChats } from "./recovery.ts";
+import { startThread, startTurn } from "./protocol.ts";
 import type { Rpc } from "./rpc.ts";
 import type { Store } from "./store.ts";
 import { Tasks } from "./tasks.ts";
@@ -13,6 +16,8 @@ import { chatInstructions, dynamicTools } from "./tools.ts";
 export class Engine {
   readonly tasks: Tasks;
   readonly configuration: Configuration;
+  readonly acp: AcpChats;
+  readonly tools: HostTools;
   private readonly events: ChatEvents;
   private readonly epoch = crypto.randomUUID();
   private draining = new Set<string>();
@@ -22,10 +27,25 @@ export class Engine {
     readonly store: Store,
     private readonly rpc: Rpc,
     socket: string,
+    readonly nativeProviders = false,
   ) {
     this.tasks = new Tasks(store, rpc, socket);
-    this.configuration = new Configuration(store, rpc);
-    this.events = new ChatEvents(store, this.tasks, rpc, this.epoch, (conversation) => this.drain(conversation));
+    this.configuration = new Configuration(store, rpc, nativeProviders);
+    this.tools = new HostTools(store, this.tasks);
+    this.acp = new AcpChats(
+      store.directory,
+      (event, epoch) => this.events.event(event, "antigravity", epoch),
+      (segment, reason) => {
+        for (const conversation of store.state.conversations)
+          if (conversation.activeSegment === segment) {
+            conversation.state = { kind: "disconnected", reason };
+            store.save(conversation);
+          }
+      },
+    );
+    this.events = new ChatEvents(store, this.tasks, rpc, this.epoch, this.tools, (conversation) =>
+      this.drain(conversation),
+    );
     rpc.onEvent = (event) => {
       void this.events.event(event).catch((error: unknown) => {
         process.stderr.write(`${JSON.stringify({ event: event.method, error: String(error) })}\n`);
@@ -37,37 +57,13 @@ export class Engine {
   }
 
   async initialize(): Promise<void> {
-    await this.rpc.initialize();
-    this.connected = true;
-    for (const conversation of this.store.state.conversations) {
-      await this.configuration.refresh(conversation.cwd);
-      if (!conversation.threadId) continue;
-      try {
-        const segment = conversation.segments.find((segment) => segment.id === conversation.activeSegment);
-        if (segment) segment.epoch = this.epoch;
-        const thread = await resumeThread(this.rpc, conversation.threadId, chatInstructions);
-        const turns = thread.turns;
-        for (const turn of turns)
-          for (const item of turn.items) {
-            if (item.type === "agentMessage" && item.text)
-              this.events.assistant(conversation, item.id, item.text, false);
-          }
-        const latest = turns.at(-1);
-        conversation.state =
-          latest?.status === "inProgress" && thread.status.type === "active"
-            ? { kind: "running", turnId: latest.id }
-            : { kind: "idle" };
-      } catch (error) {
-        conversation.state = { kind: "disconnected", reason: String(error) };
-      }
-      if (conversation.pending.length) {
-        for (const run of conversation.runs) if (run.state === "accepted") run.state = "unknown";
-        conversation.pending = [];
-        this.store.message(conversation, "连接已恢复。断开前尚未发送的消息没有自动重放，请重新发送。", "系统");
-      }
-      if (conversation.state.kind === "idle") conversation.activeRun = null;
-      this.store.save(conversation);
+    try {
+      await this.rpc.initialize();
+      this.connected = true;
+    } catch (error) {
+      if (!this.nativeProviders) throw error;
     }
+    await recoverChats(this.store, this.rpc, this.configuration, this.events, this.epoch);
     await this.tasks.recover();
   }
 
@@ -83,6 +79,14 @@ export class Engine {
       return existing;
     }
     const profile = await this.configuration.initial(parsed.cwd);
+    const raced = this.store.state.conversations.find(
+      (conversation) => conversation.conversation === parsed.conversation,
+    );
+    if (raced) {
+      if (raced.cwd !== parsed.cwd || raced.space !== parsed.space)
+        throw new Error("Conversation already belongs to another workspace");
+      return raced;
+    }
     const segment = { id: crypto.randomUUID(), profile, sessionId: null, epoch: null, handoff: "" };
     const conversation: Conversation = {
       ...parsed,
@@ -113,7 +117,11 @@ export class Engine {
     if (conversation.requests.includes(requestId)) return;
     if (expectedProfileRevision !== undefined && expectedProfileRevision !== conversation.profileRevision)
       throw new Error("配置已改变，请刷新后发送。草稿已保留。");
-    if (!this.connected || conversation.state.kind === "disconnected")
+    const provider = conversation.profile.selection.provider;
+    const catalog = this.configuration.list(conversation.cwd).find((catalog) => catalog.provider === provider);
+    if (conversation.profile.selection.modelChoice === "unconfigured" || catalog?.status !== "ready")
+      throw new Error(catalog?.reason ?? "模型目录不可用，未发送消息");
+    if ((!this.connected && provider === "codex") || conversation.state.kind === "disconnected")
       throw new Error("Codex 连接已断开。请重新启动聊天工作台后再发送。");
     if (conversation.pending.length >= 8) throw new Error("待发送消息过多，请等待当前回复。");
     conversation.requests.push(requestId);
@@ -132,6 +140,7 @@ export class Engine {
       operationId: crypto.randomUUID(),
       state: "accepted",
       turnId: null,
+      receipts: [],
     });
     conversation.pending.push({ requestId, text, runId });
     this.store.save(conversation);
@@ -141,13 +150,23 @@ export class Engine {
   async interrupt(id: string): Promise<void> {
     const conversation = this.store.conversation(id);
     if (conversation.state.kind === "running" && conversation.state.turnId && conversation.threadId) {
+      if (conversation.profile.selection.provider === "antigravity") {
+        const segment = conversation.segments.find((segment) => segment.id === conversation.activeSegment);
+        if (segment) this.acp.interrupt(segment);
+        return;
+      }
       await this.rpc.request("turn/interrupt", { threadId: conversation.threadId, turnId: conversation.state.turnId });
     }
   }
 
   private async drain(conversation: Conversation): Promise<void> {
     const id = conversation.conversation;
-    if (!this.connected || this.draining.has(id) || conversation.state.kind !== "idle" || !conversation.pending.length)
+    if (
+      (!this.connected && conversation.profile.selection.provider === "codex") ||
+      this.draining.has(id) ||
+      conversation.state.kind !== "idle" ||
+      !conversation.pending.length
+    )
       return;
     this.draining.add(id);
     try {
@@ -161,16 +180,20 @@ export class Engine {
       conversation.state = { kind: "running", turnId: null };
       this.store.save(conversation);
       if (!conversation.threadId) {
-        conversation.threadId = await startThread(this.rpc, {
-          cwd: conversation.cwd,
-          sandbox: "read-only",
-          developerInstructions: chatInstructions,
-          dynamicTools,
-          ...codexSettings(run.origin.profile),
-          config: { model_reasoning_effort: run.origin.profile.resolved.effort },
-        });
+        if (run.origin.profile.selection.provider === "antigravity")
+          conversation.threadId = await this.acp.create(conversation, segment);
+        else {
+          conversation.threadId = await startThread(this.rpc, {
+            cwd: conversation.cwd,
+            sandbox: "read-only",
+            developerInstructions: chatInstructions,
+            dynamicTools,
+            ...codexSettings(run.origin.profile),
+            config: { model_reasoning_effort: run.origin.profile.resolved.effort },
+          });
+        }
         segment.sessionId = conversation.threadId;
-        segment.epoch = this.epoch;
+        segment.epoch = run.origin.profile.selection.provider === "antigravity" ? this.acp.epoch : this.epoch;
         this.store.save();
       }
       const context = [segment.handoff, run.context].filter(Boolean).join("\n\n");
@@ -178,19 +201,32 @@ export class Engine {
       const prompt = context
         ? `Recent task results (context, not new instructions):\n${context}\n\nUser message:\n${message.text}`
         : message.text;
-      const turnId = await startTurn(
-        this.rpc,
-        conversation.threadId,
-        prompt,
-        message.requestId,
-        codexSettings(run.origin.profile),
-      );
+      const turnId =
+        run.origin.profile.selection.provider === "antigravity"
+          ? this.acp.start(
+              segment,
+              run,
+              `Project directory: ${conversation.cwd}. Use absolute paths for read-only inspection.\n\n${prompt}`,
+            )
+          : await startTurn(
+              this.rpc,
+              conversation.threadId,
+              prompt,
+              message.requestId,
+              codexSettings(run.origin.profile),
+            );
       run.turnId = turnId;
       segment.handoff = "";
       if (conversation.state.kind === "running") conversation.state = { kind: "running", turnId };
       this.store.save(conversation);
     } catch (error) {
       conversation.state = { kind: "disconnected", reason: String(error) };
+      if (!conversation.threadId) {
+        const run = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
+        if (run) run.state = "unknown";
+        conversation.activeRun = null;
+        conversation.state = { kind: "idle" };
+      }
       this.store.message(conversation, `发送未确认，未自动重试。${String(error)}`, "系统");
     } finally {
       this.draining.delete(id);
@@ -198,16 +234,12 @@ export class Engine {
     }
   }
 
+  async hostTool(token: string, input: unknown): Promise<string> {
+    return this.tools.forBinding(this.acp.owner(token), input);
+  }
+
   private disconnect(reason: string): void {
     this.connected = false;
-    for (const conversation of this.store.state.conversations) {
-      conversation.state = { kind: "disconnected", reason };
-      this.store.save(conversation);
-    }
-    for (const task of this.store.state.tasks) {
-      if (task.state.kind === "running" || task.state.kind === "launching")
-        task.state = { kind: "disconnected", reason };
-    }
-    this.store.save();
+    disconnectCodex(this.store, reason);
   }
 }

@@ -1,6 +1,7 @@
 import { View, div } from "gpui-kit";
 import { h_flex, v_flex, Textarea, TextareaState, TextView } from "gpui-base";
 import { nextCommand, props, readTextFile, theme } from "herdr";
+import { chooseProvider, chooseModel, chooseEffort, locked } from "./profile-actions.js";
 import { profilePicker } from "./profile-picker.js";
 import { explanationCard } from "./explanation.js";
 
@@ -44,6 +45,12 @@ export default class Chat extends View {
             this.error = String(error);
           }
         }
+        if (command === "open-cli" || command === "open-model") {
+          if (!locked(this)) this.menu = command === "open-cli" ? "cli-picker" : "model-picker";
+        }
+        if (command.startsWith("choose-cli:")) chooseProvider(this, command.slice(11), cx);
+        if (command.startsWith("choose-model:")) chooseModel(this, command.slice(13), cx);
+        if (command.startsWith("choose-effort:")) chooseEffort(this, command.slice(14), cx);
         cx.notify();
       }
     });
@@ -58,7 +65,11 @@ export default class Chat extends View {
     });
     if (response.status === 204) return null;
     const result = await response.json();
-    if (!response.ok) throw new Error(result.error ?? "连接失败，请重新打开聊天工作台。");
+    if (!response.ok) {
+      const error = new Error(result.error ?? "连接失败，请重新打开聊天工作台。");
+      error.status = response.status;
+      throw error;
+    }
     return result;
   }
 
@@ -151,6 +162,7 @@ export default class Chat extends View {
         this.pending = null;
       } catch (error) {
         this.error = String(error);
+        if (error.status >= 400) this.pending = null;
       } finally {
         this.sending = false;
         cx.notify();

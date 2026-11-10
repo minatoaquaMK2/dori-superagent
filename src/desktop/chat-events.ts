@@ -1,5 +1,6 @@
-import { type Conversation, explanationSchema } from "./model.ts";
-import { providerNames } from "./profile.ts";
+import type { Conversation } from "./model.ts";
+import type { HostTools } from "./host-tools.ts";
+import { type Provider, providerNames } from "./profile.ts";
 import { deltaSchema, eventParamsSchema, itemEventSchema, toolCallSchema, turnEventSchema } from "./protocol.ts";
 import type { Envelope, Rpc } from "./rpc.ts";
 import type { Store } from "./store.ts";
@@ -11,6 +12,7 @@ export class ChatEvents {
     private readonly tasks: Tasks,
     private readonly rpc: Rpc,
     private readonly epoch: string,
+    private readonly tools: HostTools,
     private readonly drain: (conversation: Conversation) => Promise<void>,
   ) {}
   assistant(conversation: Conversation, itemId: string, text: string, delta: boolean): void {
@@ -23,7 +25,7 @@ export class ChatEvents {
     } else this.store.message(conversation, text, providerNames[conversation.profile.selection.provider], id);
   }
 
-  async event(event: Envelope): Promise<void> {
+  async event(event: Envelope, provider: Provider = "codex", epoch = this.epoch): Promise<void> {
     if (!event.method) return;
     const parsed = eventParamsSchema.safeParse(event.params);
     if (!parsed.success) {
@@ -32,7 +34,8 @@ export class ChatEvents {
     }
     const threadId = parsed.data.threadId;
     const task = this.store.state.tasks.find(
-      (task) => task.origin.profile.selection.provider === "codex" && task.threadId === threadId,
+      (task) =>
+        provider === "codex" && task.origin.profile.selection.provider === "codex" && task.threadId === threadId,
     );
     if (task) {
       this.tasks.event(task, event);
@@ -40,14 +43,21 @@ export class ChatEvents {
     }
     const conversation = this.store.state.conversations.find(
       (c) =>
-        c.profile.selection.provider === "codex" &&
+        c.profile.selection.provider === provider &&
         c.threadId === threadId &&
-        c.segments.some((segment) => segment.id === c.activeSegment && segment.epoch === this.epoch),
+        c.segments.some((segment) => segment.id === c.activeSegment && segment.epoch === epoch),
     );
-    if (!conversation) return;
+    if (!conversation) {
+      if (event.id !== undefined && provider === "codex")
+        this.rpc.reject(event.id, "This session no longer owns chat tools");
+      return;
+    }
     switch (event.method) {
       case "item/agentMessage/delta": {
         const data = deltaSchema.parse(event.params);
+        const active = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
+        if (active?.turnId && active.turnId !== data.turnId) break;
+        if (!active) break;
         this.assistant(conversation, data.itemId, data.delta, true);
         break;
       }
@@ -63,7 +73,7 @@ export class ChatEvents {
       case "turn/completed": {
         const { turn } = turnEventSchema.parse(event.params);
         const active = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
-        if (active?.turnId && active.turnId !== turn.id) break;
+        if (!active || (active.turnId && active.turnId !== turn.id)) break;
         if (active) active.state = "finished";
         conversation.activeRun = null;
         conversation.state = { kind: "idle" };
@@ -76,21 +86,11 @@ export class ChatEvents {
       case "item/tool/call": {
         if (event.id === undefined) break;
         const call = toolCallSchema.parse(event.params);
-        let result: string;
-        const run = conversation.runs.find((run) => run.origin.run === conversation.activeRun);
-        if (run?.state !== "attempted" || (run.turnId && run.turnId !== call.turnId))
-          throw new Error("This main run no longer owns tool access");
-        if (call.tool === "start_task")
-          result = await this.tasks.dispatch(conversation, run.operationId, call.arguments, run.origin);
-        else if (call.tool === "show_explanation") {
-          const explanation = explanationSchema.parse(call.arguments);
-          const id = `explanation:${run.operationId}`;
-          if (!conversation.entries.some((entry) => entry.id === id)) {
-            conversation.entries.push({ kind: "explanation", id, explanation });
-            this.store.save(conversation);
-          }
-          result = "Explanation displayed in the chat. The user can switch scenarios.";
-        } else throw new Error(`Unknown tool ${call.tool}`);
+        const run =
+          conversation.runs.find((run) => run.turnId === call.turnId) ??
+          conversation.runs.find((run) => run.origin.run === conversation.activeRun);
+        if (!run || (run.turnId && run.turnId !== call.turnId)) throw new Error("Unknown main run");
+        const result = await this.tools.call(conversation, run, call.tool, call.arguments);
         this.rpc.respond(event.id, { success: true, contentItems: [{ type: "inputText", text: result }] });
         break;
       }

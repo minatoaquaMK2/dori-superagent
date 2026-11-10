@@ -90,3 +90,52 @@ async function nameTaskTab(task: Task): Promise<void> {
     await Bun.sleep(250);
   }
 }
+
+export async function attachNativeTerminal(task: Task, space: string, argv: string[]): Promise<string> {
+  if (task.runtime.kind !== "native") throw new Error("Task has no native runtime");
+  const existing = z
+    .object({ terminals: z.array(z.object({ address: z.string() }).passthrough()) })
+    .parse(JSON.parse(await command(["hc", "ls", "--json", "--label", `dori.chat.task=${task.id}`]))).terminals[0];
+  if (existing) {
+    const terminal = z
+      .object({ foreground: z.object({ argv: z.array(z.string()) }).nullable() })
+      .parse(JSON.parse(await command(["hc", "get", existing.address, "--json"])));
+    const foreground = terminal.foreground?.argv ?? [];
+    if (!foreground.includes(task.runtime.directory)) throw new Error("任务终端身份无法确认，未重新启动 CLI");
+    return existing.address;
+  }
+  const result = await command([
+    "hc",
+    "run",
+    "--json",
+    "--bg",
+    "--no-parent",
+    "--no-notify",
+    "--keep",
+    "--cwd",
+    task.cwd,
+    "--label",
+    `herdr.space=${space}`,
+    "--label",
+    `herdr.tab=${task.tab}`,
+    "--label",
+    `dori.chat.task=${task.id}`,
+    "--name",
+    `chat-${task.id.slice(0, 12)}`,
+    "--",
+    ...argv,
+  ]);
+  const address = z.object({ address: z.string() }).parse(JSON.parse(result)).address;
+  const terminal = z
+    .object({ labels: z.record(z.string(), z.string()).optional(), cwd: z.string().optional() })
+    .passthrough()
+    .parse(JSON.parse(await command(["hc", "get", address, "--json"])));
+  if (
+    terminal.labels?.["dori.chat.task"] !== task.id ||
+    terminal.labels?.["herdr.space"] !== space ||
+    terminal.labels?.["herdr.tab"] !== task.tab
+  )
+    throw new Error("Herdr 返回的终端归属不匹配，任务启动结果待确认");
+  void nameTaskTab(task);
+  return address;
+}
