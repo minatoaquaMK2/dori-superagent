@@ -33,6 +33,7 @@ export class AcpSession {
   id = "";
   data: z.infer<typeof sessionSchema> | undefined;
   onUpdate: (message: AcpEnvelope) => void = () => {};
+  onNotice: (text: string) => void = () => {};
 
   constructor(
     directory: string,
@@ -101,13 +102,17 @@ export class AcpSession {
             options: z.array(z.object({ optionId: z.string(), kind: z.string() })),
           })
           .parse(message.params);
-        const allowed = ["mcp_herdr_host_start_task", "mcp_herdr_host_show_explanation"].includes(
+        const allowed = ["read_file", "mcp_herdr_host_start_task", "mcp_herdr_host_show_explanation"].includes(
           permission.toolCall.name ?? "",
         );
         const option = permission.options.find((option) => option.kind === (allowed ? "allow_once" : "reject_once"));
         this.rpc.respond(message.id, {
           outcome: option ? { outcome: "selected", optionId: option.optionId } : { outcome: "cancelled" },
         });
+        if (!allowed)
+          this.onNotice(
+            `主聊天没有执行 ${permission.toolCall.name ?? "此操作"}。需要写入或命令的工作应交给原生任务终端。`,
+          );
       } else if (message.id !== undefined)
         this.rpc.reject(message.id, "This main chat has no write or terminal capability");
       else this.onUpdate(message);

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { Conversation } from "./model.ts";
 import type { HostTools } from "./host-tools.ts";
 import { type Provider, providerNames } from "./profile.ts";
@@ -53,6 +54,9 @@ export class ChatEvents {
       return;
     }
     switch (event.method) {
+      case "chat/notice":
+        this.store.message(conversation, z.object({ text: z.string() }).parse(event.params).text, "系统");
+        break;
       case "item/agentMessage/delta": {
         const data = deltaSchema.parse(event.params);
         const active = conversation.runs.find((run) => run.origin.run === conversation.activeRun);

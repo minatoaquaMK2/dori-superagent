@@ -5,7 +5,14 @@ import type { Envelope } from "../rpc.ts";
 import { chatInstructions } from "../tools.ts";
 import { AcpSession } from "./acp-session.ts";
 
-type Binding = { session: AcpSession; token: string; conversation: string; segment: string; run: MainRun | null };
+type Binding = {
+  session: AcpSession;
+  token: string;
+  conversation: string;
+  segment: string;
+  run: MainRun | null;
+  replied: boolean;
+};
 
 export class AcpChats {
   private sessions = new Map<string, Binding>();
@@ -29,11 +36,15 @@ export class AcpChats {
       conversation: conversation.conversation,
       segment: segment.id,
       run: null,
+      replied: false,
     };
     this.sessions.set(segment.id, binding);
     session.rpc.onClose = (error) => {
       this.sessions.delete(segment.id);
       this.disconnected(segment.id, error.message);
+    };
+    session.onNotice = (text) => {
+      void this.event({ method: "chat/notice", params: { threadId: session.id, text } }, this.epoch);
     };
     session.onUpdate = (message) => {
       if (message.method !== "session/update" || !binding.run) return;
@@ -54,6 +65,7 @@ export class AcpChats {
         update.update.content?.type !== "text"
       )
         return;
+      binding.replied = true;
       void this.event(
         {
           method: "item/agentMessage/delta",
@@ -90,6 +102,7 @@ export class AcpChats {
     const binding = this.sessions.get(segment.id);
     if (!binding) throw new Error("ACP 会话已断开；消息未重放");
     binding.run = run;
+    binding.replied = false;
     const turnId = run.origin.run;
     const params = { threadId: binding.session.id, turn: { id: turnId, status: "inProgress", items: [] } };
     void this.event({ method: "turn/started", params }, this.epoch);
@@ -100,6 +113,17 @@ export class AcpChats {
         const result = z.object({ stopReason: z.string() }).parse(value);
         const status =
           result.stopReason === "cancelled" ? "interrupted" : result.stopReason === "end_turn" ? "completed" : "failed";
+        if (!binding.replied && !run.receipts.length)
+          void this.event(
+            {
+              method: "chat/notice",
+              params: {
+                threadId: binding.session.id,
+                text: "CLI 已结束本轮，但没有返回文字或工具结果。可以重新描述问题后发送。",
+              },
+            },
+            this.epoch,
+          );
         binding.run = null;
         return this.event(
           {
