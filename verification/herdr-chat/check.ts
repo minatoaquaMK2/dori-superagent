@@ -41,7 +41,7 @@ if (java.code || tlc.code) throw new Error("mise could not resolve the pinned ve
 const javaBin = join(java.output.trim(), "bin/java");
 const jar = join(tlc.output.trim(), "tla2tools.jar");
 let failed = false;
-for (const model of ["Dispatch", "Ledger", "Ownership"]) {
+for (const model of ["Dispatch", "Ledger", "Ownership", "ProfileRun", "NativeWorker"]) {
   const result = await command(
     [
       javaBin,

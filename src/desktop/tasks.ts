@@ -1,27 +1,49 @@
+import { join } from "node:path";
+import { NativeWorkers } from "./workers/native-cli.ts";
+import { providerNames } from "./profile.ts";
+import { codexSettings } from "./providers/codex.ts";
 import { attachTerminal } from "./herdr.ts";
-import { activeTask, type Conversation, dispatchSchema, type Task } from "./model.ts";
+import { activeTask, type Conversation, dispatchSchema, type Task, type RunOrigin } from "./model.ts";
 import { itemEventSchema, resumeThread, startThread, startTurn, type Turn, turnEventSchema } from "./protocol.ts";
 import type { Envelope, Rpc } from "./rpc.ts";
 import type { Store } from "./store.ts";
 
 export class Tasks {
+  readonly native: NativeWorkers;
   constructor(
     private readonly store: Store,
     private readonly rpc: Rpc,
     private readonly socket: string,
-  ) {}
+  ) {
+    this.native = new NativeWorkers(store);
+  }
 
-  async dispatch(conversation: Conversation, callId: string, input: unknown): Promise<string> {
+  async dispatch(
+    conversation: Conversation,
+    callId: string,
+    input: unknown,
+    origin: RunOrigin = {
+      conversation: conversation.conversation,
+      segment: conversation.activeSegment,
+      run: callId,
+      request: callId,
+      profile: structuredClone(conversation.profile),
+    },
+  ): Promise<string> {
+    const { title, prompt } = dispatchSchema.parse(input);
     const previous = this.store.state.tasks.find(
       (task) => task.conversation === conversation.conversation && task.callId === callId,
     );
-    if (previous) return JSON.stringify({ id: previous.id, title: previous.title, state: previous.state.kind });
-    const { title, prompt } = dispatchSchema.parse(input);
-    if (this.store.state.tasks.some((task) => task.cwd === conversation.cwd && activeTask(task))) {
-      throw new Error("这个项目已有任务正在执行或等待确认。请先在原侧栏查看该 Codex 终端，完成后再派下一项任务。");
+    if (previous) {
+      if (previous.title !== title || previous.prompt !== prompt) throw new Error("此派发身份已用于另一项任务");
+      return JSON.stringify({ id: previous.id, title: previous.title, state: previous.state.kind });
     }
+    if (this.store.state.tasks.some((task) => task.cwd === conversation.cwd && activeTask(task))) {
+      throw new Error("这个项目已有任务正在执行或等待确认。请先在原侧栏查看该任务终端，完成后再派下一项任务。");
+    }
+    const taskId = crypto.randomUUID();
     const task: Task = {
-      id: crypto.randomUUID(),
+      id: taskId,
       callId,
       conversation: conversation.conversation,
       cwd: conversation.cwd,
@@ -33,20 +55,53 @@ export class Tasks {
       state: { kind: "launching" },
       reported: [],
       output: {},
+      origin,
+      runtime:
+        origin.profile.selection.provider === "codex"
+          ? { kind: "codex" }
+          : {
+              kind: "native",
+              directory: join(this.store.directory, "workers", taskId),
+              sessionId: null,
+              open: true,
+              receipts: [],
+            },
+      launch: "intent",
     };
     this.store.state.tasks.push(task);
     this.store.save(conversation);
     try {
+      if (task.runtime.kind === "native") {
+        const terminal = await this.native.launch(task, conversation.space);
+        this.store.message(
+          conversation,
+          `已开始「${title}」。可从 Herdr 原侧栏打开 ${providerNames[origin.profile.selection.provider]} 终端继续操作。`,
+          providerNames[origin.profile.selection.provider],
+          `task:${task.id}:start`,
+        );
+        return JSON.stringify({ id: task.id, title, terminal, state: task.state.kind });
+      }
+      task.launch = "thread-attempted";
+      this.store.save();
       task.threadId = await startThread(this.rpc, {
         cwd: task.cwd,
+        ...codexSettings(origin.profile),
+        config: { model_reasoning_effort: origin.profile.resolved.effort },
         developerInstructions:
           "Complete the user's task and verify your own changes. You are the only worker. Do not delegate or launch other agents. Report concrete results and checks truthfully in the user's language. Preserve the existing permission policy.",
       });
+      task.launch = "thread-created";
       this.store.save();
-      const turnId = await startTurn(this.rpc, task.threadId, prompt);
-      if (task.state.kind === "launching") task.state = { kind: "running", turnId };
+      task.launch = "terminal-attempted";
       this.store.save();
       task.terminal = await attachTerminal(task, conversation.space, this.socket);
+      task.launch = "attached";
+      this.store.save();
+      task.launch = "turn-attempted";
+      this.store.save();
+      const turnId = await startTurn(this.rpc, task.threadId, prompt, undefined, codexSettings(origin.profile));
+      if (task.state.kind === "launching") task.state = { kind: "running", turnId };
+      this.store.save();
       this.store.message(
         conversation,
         `已开始「${title}」。可从 Herdr 原侧栏打开 Codex 终端查看或继续操作。`,
@@ -56,11 +111,13 @@ export class Tasks {
       return JSON.stringify({ id: task.id, title, terminal: task.terminal, state: task.state.kind });
     } catch (error) {
       const reason = error instanceof Error ? error.message : String(error);
+      if (task.runtime.kind === "native" && task.launch === "intent") task.runtime.open = false;
       if (task.state.kind === "finished") {
         this.store.message(conversation, `「${title}」已返回结果，但终端窗口未能打开。${reason}`, "系统");
         return JSON.stringify({ id: task.id, title, terminal: task.terminal, state: task.state.kind, warning: reason });
       }
-      if (activeTask(task)) task.state = task.threadId ? { kind: "disconnected", reason } : { kind: "failed", reason };
+      if (activeTask(task))
+        task.state = task.launch !== "intent" ? { kind: "disconnected", reason } : { kind: "failed", reason };
       this.store.message(
         conversation,
         `「${title}」未能完成启动。${reason}${task.threadId ? " Codex 会话可能仍在运行，未自动重试。" : ""}`,
@@ -121,8 +178,21 @@ export class Tasks {
 
   async recover(): Promise<void> {
     for (const task of this.store.state.tasks) {
+      if (task.runtime.kind === "native") {
+        if (task.launch === "intent") {
+          task.runtime.open = false;
+          this.failLaunch(task);
+          continue;
+        }
+        this.native.poll(task);
+        await this.native.reconcile(task);
+        continue;
+      }
       if (!task.threadId) {
-        if (task.state.kind === "launching") this.failLaunch(task);
+        if (task.state.kind === "launching") {
+          if (task.launch === "intent") this.failLaunch(task);
+          else task.state = { kind: "disconnected", reason: "任务启动已尝试但会话身份未知，未自动重试" };
+        }
         continue;
       }
       try {

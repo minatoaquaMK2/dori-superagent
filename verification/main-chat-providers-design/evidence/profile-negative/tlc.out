@@ -1,0 +1,41 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Warning: Please run the Java VM which executes TLC with a throughput optimized garbage collector by passing the "-XX:+UseParallelGC" property.
+(Use the -nowarning option to disable this warning.)
+Running breadth-first search Model-Checking with fp 0 and seed 5559222843424399507 with 1 worker on 8 cores with 6144MB heap and 64MB offheap memory [pid: 55178] (Mac OS X 27.2 aarch64, Eclipse Adoptium 25.0.5 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /private/tmp/dori-main-chat-design/formal/ProfileSelection.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-7JYgoU/statechart-HPoIqm/tmp-verdict-1/Naturals.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-7JYgoU/statechart-HPoIqm/tmp-verdict-1/TLC.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-7JYgoU/statechart-HPoIqm/tmp-verdict-1/Sequences.tla
+Parsing file /private/var/folders/3l/6v1rjzz54kxdk0kklpymnny80000gn/T/statechart-7JYgoU/statechart-HPoIqm/tmp-verdict-1/FiniteSets.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module ProfileSelection
+Starting... (2026-11-10 12:04:19)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-11-10 12:04:19.
+Error: Invariant ValidProfile is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ task = <<"none", "none", "none">>
+/\ origin = <<"none", "none", "none">>
+/\ proposed = <<"none", "none", "none">>
+/\ selected = <<"codex", "C1", "high">>
+
+State 2: <Choose line 13, col 14 to line 14, col 69 of module ProfileSelection>
+/\ task = <<"none", "none", "none">>
+/\ origin = <<"none", "none", "none">>
+/\ proposed = <<"devin", "C1", "high">>
+/\ selected = <<"codex", "C1", "high">>
+
+State 3: <Accept line 15, col 11 to line 18, col 29 of module ProfileSelection>
+/\ task = <<"none", "none", "none">>
+/\ origin = <<"none", "none", "none">>
+/\ proposed = <<"none", "none", "none">>
+/\ selected = <<"devin", "C1", "high">>
+
+24 states generated, 14 distinct states found, 7 states left on queue.
+The depth of the complete state graph search is 3.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 9 and the 95th percentile is 9).
+Finished in 00s at (2026-11-10 12:04:19)

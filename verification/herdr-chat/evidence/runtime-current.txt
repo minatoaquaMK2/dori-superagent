@@ -1,0 +1,43 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+(pass) concurrent pane opens create one conversation [17.30ms]
+(pass) composer profile uses CLI config and freezes each accepted request [22.23ms]
+(pass) model catalog rejects unsupported effort without mutating profile or history [13.14ms]
+(pass) a retired model cannot accept another request under a cached profile [13.04ms]
+(pass) v1 migration preserves history and request identities and writes one v2 store [13.49ms]
+
+test/desktop-native.test.ts:
+(pass) native results use real turn boundaries, survive restart and retain the open terminal lease [17.58ms]
+
+test/desktop-recovery.test.ts:
+(pass) recovery releases empty tasks without replay or duplicate reporting [34.58ms]
+(pass) recovery releases completed tasks without replay or duplicate reporting [402.90ms]
+
+test/desktop-main-recovery.test.ts:
+{"event":"item/tool/call","error":"Error: Unknown main run"}
+(pass) a migrated active Codex turn completes without granting unowned host tools [32.79ms]
+(pass) ACP crash before a saved session releases the unsent run without replay [17.08ms]
+
+verification/herdr-chat/profile-runtime.test.ts:
+(pass) scoped host receipts survive reload, reject changed payloads and prevent stale first effects [29.71ms]
+(pass) worker dispatch uses the accepted origin and rejects a conflicting duplicate [120.75ms]
+(pass) unknown runs and revoked bindings cannot create a first host effect [19.34ms]
+(pass) an ACP run interrupted before session creation releases the composer without replay [13.74ms]
+(pass) native recovery retains an unknown launch without starting a second worker [24.23ms]
+
+verification/herdr-chat/runtime.test.ts:
+(pass) crash at thread/start retains unknown identity and releases authoritatively empty work [47.85ms]
+(pass) crash at turn/start retains unknown identity and releases authoritatively empty work [58.35ms]
+(pass) a finished dispatch call stays deduplicated across reload [14.00ms]
+(pass) duplicate completed result keeps one persisted report and context [14.68ms]
+(pass) duplicate failed result keeps one persisted report and context [16.77ms]
+(pass) duplicate interrupted result keeps one persisted report and context [16.50ms]
+(pass) worker approval remains unanswered by the bridge; chat approval is declined [31.77ms]
+(pass) terminal failure with an unconfirmed result remains disconnected [21.10ms]
+(pass) recovery restores a persisted reported outcome without duplicating context [14.80ms]
+
+ 24 pass
+ 0 fail
+ 106 expect() calls
+Ran 24 tests across 6 files. [1055.00ms]

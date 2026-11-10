@@ -1,5 +1,11 @@
 export const title = "One dispatch identity and one returned outcome";
 export function state(v) {
+  const broken = [];
+  if (v.starts > 0 && !v.durable) broken.push("Started without durable intent");
+  if (v.starts > 1) broken.push("Repeated worker launch");
+  if (v.reports > 1 || v.contexts > 1) broken.push("Duplicated result");
+  if (v.shownOutcome !== "none" && v.shownOutcome !== v.sourceOutcome) broken.push("Wrong outcome");
+  if (broken.length) return broken.join("; ");
   if (v.phase === "intent") return v.durable ? "Intent saved" : "Intent missing";
   if (v.phase === "working") return v.durable ? "One worker started" : "Worker started without saved intent";
   if (v.phase === "result") return `Worker returned ${v.sourceOutcome}`;

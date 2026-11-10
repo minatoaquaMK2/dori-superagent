@@ -1,0 +1,28 @@
+---
+title: "Native worker result and project ownership"
+---
+stateDiagram-v2
+  s0: Task reserved
+  s1: Launch attempted
+  s2: Bridge stopped before launch
+  s3: Terminal closed#59; project released
+  s4: Native CLI running
+  s5: Launch or terminal state unknown
+  s6: Background work still active
+  s7: Result returned#59; terminal keeps project
+  [*] --> s0
+  s0 --> s1: save launch attempt
+  s0 --> s2: bridge stops
+  s1 --> s4: Herdr starts interactive CLI
+  s1 --> s5: bridge stops
+  s2 --> s3: restart finds no launch attempt
+  s4 --> s6: non-idle Stop arrives
+  s4 --> s3: owned terminal is confirmed closed
+  s4 --> s7: final Stop arrives
+  s4 --> s5: bridge stops
+  s5 --> s3: owned terminal is confirmed closed
+  s6 --> s3: owned terminal is confirmed closed
+  s6 --> s7: final Stop arrives
+  s6 --> s5: bridge stops
+  s7 --> s3: owned terminal is confirmed closed
+  s7 --> s5: bridge stops

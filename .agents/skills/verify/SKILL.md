@@ -11,7 +11,7 @@ Read [the feature index](features/README.md), then the matching journey. For cha
 
 Run from this repository root. Require Bun, Python 3, `hc`, `herdr-app`, and a signed-in `codex` with Unix app-server and `resume --remote` support. Read `~/.config/herdr-app/AGENTS.md`, `herdr.d.ts`, and `gpui-kit.d.ts` for the installed native API. This is GPUI, with no browser, DOM, or HTML.
 
-One agent owns the native window for the entire run. `DORI_DESKTOP_HOME` isolates the bridge, state, and socket. It does not isolate the Herdr window or installed mod. The installer writes `~/.config/herdr-app/mods/dori-chat` directly even when `HERDR_APP_HOME` is set. Do not run concurrent installers or native drivers. Do not change the default `~/.local/state/dori-chat` during an isolated run.
+One agent owns the native window for the entire run. `DORI_DESKTOP_HOME` isolates the bridge, state, and socket. It does not isolate the Herdr window or installed mod. `HERDR_APP_HOME` selects the app configuration and mod installation directory; without it, installation uses `~/.config/herdr-app/mods/dori-chat`. Do not run concurrent installers or native drivers. Do not change the default `~/.local/state/dori-chat` during an isolated run.
 
 Before installing, save `herdr-app status` and `herdr-app ls` outside the runtime directory. Record the active space, tab, and layout. Keep the existing dori-chat mod intact if it differs from this checkout. Use an existing Herdr window, or launch `herdr-app` and record that you opened it. The stock Herdr files are outside this verification's edit scope.
 
@@ -87,7 +87,7 @@ Read the installed `hc --skill` and `herdr-app --skill` before controlling agent
 
 On an isolated display, or when the user explicitly authorizes native input verification, use the available computer-use tool to inspect the Herdr screen, click the visible composer, type the exact feature prompt, and press Enter. Follow that tool's returned API documentation. A native screenshot is the source of click coordinates. Refresh it after window changes. Do not copy fixed coordinates between runs.
 
-The composer placeholder is **派个任务，或让 Codex 帮你解释一个问题…**. Enter submits, Shift+Enter inserts a newline, and **发送 ↑** submits by click. **停止回复** interrupts the chat reply only. Task interruption and approval belong to the task's Codex terminal.
+The composer placeholder is **派个任务，或一起解释一个问题…**. Enter submits, Shift+Enter inserts a newline, and **发送 ↑** submits by click. **停止回复** interrupts the chat reply only. Task interruption belongs to its original CLI terminal. Codex keeps its configured approval policy; Antigravity and Devin workers use the user's requested YOLO defaults.
 
 Use native clicks for scenario buttons, the original Agents sidebar, task tabs, and the return to **聊天工作台**. Use native typing for terminal follow-ups and approval choices. The installed native UI exposes no browser selectors. GPUI element IDs in source are useful for code tracing, not DOM queries.
 

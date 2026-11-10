@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+44 |       transcriptPath: "/unused",
+45 |       doriResult: { boundary: 0, text: "First turn" },
+46 |     };
+47 |     writeReport(directory, "Stop", payload);
+48 |     f.engine.tasks.native.poll(task);
+49 |     expect(task.reported).toHaveLength(0);
+                               ^
+error: expect(received).toHaveLength(expected)
+
+Expected length: 0
+Received length: 1
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-Uzsh9h/test/desktop-native.test.ts:49:27)
+(fail) native results use real turn boundaries, survive restart and retain the open terminal lease [18.23ms]
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [39.00ms]

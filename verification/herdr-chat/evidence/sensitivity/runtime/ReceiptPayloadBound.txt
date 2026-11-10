@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+40 |     const recovered = new Engine(reloaded, f.rpc, `${f.root}/codex.sock`);
+41 |     expect(await recovered.tools.forBinding(owner, call)).toBe(result);
+42 |     expect(reloaded.conversation("chat").entries.filter((entry) => entry.kind === "explanation")).toHaveLength(1);
+43 |     await expect(recovered.tools.forBinding(owner, {
+44 |       ...call, arguments: { ...call.arguments, title: "Changed" },
+45 |     })).rejects.toThrow();
+                     ^
+error: expect(received).rejects.toThrow(expected)
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-nlWRBx/verification/herdr-chat/profile-runtime.test.ts:45:17)
+(fail) scoped host receipts survive reload, reject changed payloads and prevent stale first effects [34.36ms]
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 6 files. [56.00ms]

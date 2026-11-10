@@ -17,8 +17,27 @@ beforeAll(() => {
     throw new Error("Terminal isolation failed; no task probes ran");
 });
 
+function catalogResult(method: string): unknown {
+  if (method === "model/list")
+    return {
+      data: [
+        {
+          id: "model-a",
+          model: "model-a",
+          displayName: "Model A",
+          isDefault: true,
+          supportedReasoningEfforts: [{ reasoningEffort: "high", description: "High" }],
+          defaultReasoningEffort: "high",
+        },
+      ],
+      nextCursor: null,
+    };
+  if (method === "config/read") return { config: { model: "model-a", model_reasoning_effort: "high" } };
+  return {};
+}
+
 for (const boundary of ["thread/start", "turn/start"]) {
-  test(`crash at ${boundary} leaves durable intent and recovery releases work that never ran`, async () => {
+  test(`crash at ${boundary} retains unknown identity and releases authoritatively empty work`, async () => {
     const root = mkdtempSync("/tmp/herdr-formal-crash-");
     let reached = false;
     let turnStarts = 0;
@@ -39,7 +58,7 @@ for (const boundary of ["thread/start", "turn/start"]) {
           }
           const result = request.method.startsWith("thread/")
             ? { thread: { id: "worker-thread", status: { type: "idle" }, turns: [] } }
-            : {};
+            : catalogResult(request.method);
           socket.send(JSON.stringify({ id: request.id, result }));
         },
       },
@@ -47,6 +66,7 @@ for (const boundary of ["thread/start", "turn/start"]) {
     const child = Bun.spawn([process.execPath, `${import.meta.dir}/crash-child.ts`, root], {
       stdout: "pipe",
       stderr: "pipe",
+      env: { ...process.env, DORI_FORMAL_ATTACH_MODE: "success" },
     });
     let rpc: Rpc | undefined;
     try {
@@ -63,10 +83,14 @@ for (const boundary of ["thread/start", "turn/start"]) {
       const task = store.state.tasks[0];
       if (!task) throw new Error("Durable task disappeared");
       const oldStarts = turnStarts;
-      await engine.tasks.dispatch(store.conversation("chat"), "same-call", { title: "Duplicate", prompt: "Retry" });
+      await engine.tasks.dispatch(store.conversation("chat"), "same-call", {
+        title: "Crash probe",
+        prompt: "Do not run a real task",
+      });
       expect(turnStarts).toBe(oldStarts);
       expect(task.state.kind).not.toBe("launching");
-      expect(activeTask(task)).toBe(false);
+      expect(activeTask(task)).toBe(boundary === "thread/start");
+      if (boundary === "turn/start") expect(task.terminal).toBe("isolated-terminal");
     } finally {
       child.kill("SIGKILL");
       await child.exited;
@@ -92,6 +116,20 @@ function worker(cwd: string): Task {
     state: { kind: "running", turnId: "turn" },
     reported: [],
     output: {},
+    origin: {
+      conversation: "chat",
+      segment: "segment",
+      run: "run",
+      request: "request",
+      profile: {
+        id: "profile",
+        selection: { provider: "codex", modelChoice: "model-a", effortChoice: "high" },
+        catalogRevision: "fixture",
+        resolved: { provider: "codex", model: "model-a", effort: "high" },
+      },
+    },
+    runtime: { kind: "codex" },
+    launch: "attached",
   };
 }
 
@@ -105,7 +143,7 @@ test("a finished dispatch call stays deduplicated across reload", async () => {
     const reloaded = new Store(`${f.root}/state.json`);
     const engine = new Engine(reloaded, f.rpc, `${f.root}/codex.sock`);
     await engine.tasks
-      .dispatch(reloaded.conversation("chat"), "same-call", { title: "Duplicate", prompt: "Retry" })
+      .dispatch(reloaded.conversation("chat"), "same-call", { title: "Worker", prompt: "Task" })
       .catch(() => {});
     expect(reloaded.state.tasks).toHaveLength(1);
     expect(f.requests.filter((r) => r.method === "thread/start")).toHaveLength(0);
@@ -144,7 +182,8 @@ test("worker approval remains unanswered by the bridge; chat approval is decline
   try {
     const task = worker(f.root);
     f.store.state.tasks.push(task);
-    f.store.conversation("chat").threadId = "chat-thread";
+    f.engine.send({ conversation: "chat", requestId: "prepare", text: "Explain" });
+    await until(() => f.requests.some((r) => r.method === "turn/start"));
     f.send("item/commandExecution/requestApproval", { threadId: task.threadId }, "worker-approval");
     f.send("item/commandExecution/requestApproval", { threadId: "chat-thread" }, "chat-approval");
     await until(() => f.requests.some((r) => r.id === "chat-approval"));
@@ -191,7 +230,7 @@ test("recovery restores a persisted reported outcome without duplicating context
         const result =
           request.method === "thread/resume"
             ? { thread: { id: "worker-thread", status: { type: "idle" }, turns: [turn] } }
-            : {};
+            : catalogResult(request.method);
         socket.send(JSON.stringify({ id: request.id, result }));
       },
     },
@@ -200,7 +239,8 @@ test("recovery restores a persisted reported outcome without duplicating context
   try {
     const original = new Store(`${root}/state.json`);
     const engine = new Engine(original, rpc, `${root}/codex.sock`);
-    engine.open({ conversation: "chat", cwd: root, space: "formal-test" });
+    await engine.initialize();
+    await engine.open({ conversation: "chat", cwd: root, space: "formal-test" });
     const task = worker(root);
     original.state.tasks.push(task);
     engine.tasks.event(task, { method: "turn/completed", params: { threadId: task.threadId, turn } });

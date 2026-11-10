@@ -1,0 +1,44 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+68 |       conversation: "chat", requestId: "later-selection", expectedRevision: 0, catalogRevision: catalog?.revision,
+69 |       selection: { provider: "codex", modelChoice: "model-a", effortChoice: "low" },
+70 |     });
+71 |     await f.engine.tasks.dispatch(conversation, "origin-call", { title: "Frozen", prompt: "Work" }, origin).catch(() => {});
+72 |     const workerStart = f.requests.filter((request) => request.method === "thread/start").at(-1);
+73 |     expect(workerStart?.params).toMatchObject({ model: "model-a", config: { model_reasoning_effort: "high" } });
+                                     ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "config": {
+-     "model_reasoning_effort": "high",
++     "model_reasoning_effort": "low",
+    },
++   "cwd": "/private/tmp/dori-chat-test-2KAFeC",
++   "developerInstructions": "Complete the user's task and verify your own changes. You are the only worker. Do not delegate or launch other agents. Report concrete results and checks truthfully in the user's language. Preserve the existing permission policy.",
++   "effort": "low",
+    "model": "model-a",
+  }
+
+- Expected  - 1
++ Received  + 4
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-vFZ9lP/verification/herdr-chat/profile-runtime.test.ts:73:33)
+(fail) worker dispatch uses the accepted origin and rejects a conflicting duplicate [93.47ms]
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [114.00ms]

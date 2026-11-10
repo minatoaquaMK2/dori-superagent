@@ -27,6 +27,7 @@ An absent approval prompt is an unmet precondition for approval verification. A 
 
 | Journey | Required proof |
 | --- | --- |
+| [CLI, model, and reasoning effort](profile-selection.md) | Real catalogs, effort inside the model menu, draft preservation, busy lock, durable preferences, and worker profile inheritance. |
 | [Native conversation](native-conversation.md) | Enter and button submission, continuation, reopening, and persisted transcript. |
 | [Task dispatch and results](task-dispatch.md) | Native chat request, one new Codex worker in the original sidebar, its actual terminal execution, the file effect, and the returned chat result. Mandatory for task dispatch changes. |
 | [Terminal continuation and approval](terminal-control.md) | Original sidebar and task-tab navigation, live worker states, another turn in the same thread, returned result, and approval ownership when a real prompt occurs. |

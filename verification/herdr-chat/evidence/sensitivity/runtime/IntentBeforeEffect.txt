@@ -1,25 +1,33 @@
 bun test v1.4.4 (38afee6c8)
 
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
 test/desktop-recovery.test.ts:
 
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
 verification/herdr-chat/runtime.test.ts:
-50 |     });
-51 |     let rpc: Rpc | undefined;
-52 |     try {
-53 |       await until(() => reached);
-54 |       const before = new Store(`${root}/state.json`);
-55 |       expect(before.state.tasks).toHaveLength(1);
+60 |     });
+61 |     let rpc: Rpc | undefined;
+62 |     try {
+63 |       await until(() => reached);
+64 |       const before = new Store(`${root}/state.json`);
+65 |       expect(before.state.tasks).toHaveLength(1);
                                       ^
 error: expect(received).toHaveLength(expected)
 
 Expected length: 1
 Received length: 0
 
-      at <anonymous> (/private/tmp/herdr-formal-mutant-DNyeHY/verification/herdr-chat/runtime.test.ts:55:34)
-(fail) crash at thread/start leaves durable intent and recovery releases work that never ran [43.53ms]
+      at <anonymous> (/private/tmp/herdr-formal-mutant-F7S9GA/verification/herdr-chat/runtime.test.ts:65:34)
+(fail) crash at thread/start retains unknown identity and releases authoritatively empty work [49.61ms]
 
  0 pass
- 10 filtered out
+ 23 filtered out
  1 fail
  1 expect() calls
-Ran 1 test across 2 files. [116.00ms]
+Ran 1 test across 6 files. [121.00ms]

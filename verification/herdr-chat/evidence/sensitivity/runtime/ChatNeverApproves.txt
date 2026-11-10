@@ -1,14 +1,22 @@
 bun test v1.4.4 (38afee6c8)
 
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
 test/desktop-recovery.test.ts:
 
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+
 verification/herdr-chat/runtime.test.ts:
-147 |     f.store.conversation("chat").threadId = "chat-thread";
-148 |     f.send("item/commandExecution/requestApproval", { threadId: task.threadId }, "worker-approval");
-149 |     f.send("item/commandExecution/requestApproval", { threadId: "chat-thread" }, "chat-approval");
-150 |     await until(() => f.requests.some((r) => r.id === "chat-approval"));
-151 |     expect(f.requests.some((r) => r.id === "worker-approval")).toBe(false);
-152 |     expect(f.requests.find((r) => r.id === "chat-approval")?.["result"]).toEqual({ decision: "decline" });
+167 |     await until(() => f.requests.some((r) => r.method === "turn/start"));
+168 |     f.send("item/commandExecution/requestApproval", { threadId: task.threadId }, "worker-approval");
+169 |     f.send("item/commandExecution/requestApproval", { threadId: "chat-thread" }, "chat-approval");
+170 |     await until(() => f.requests.some((r) => r.id === "chat-approval"));
+171 |     expect(f.requests.some((r) => r.id === "worker-approval")).toBe(false);
+172 |     expect(f.requests.find((r) => r.id === "chat-approval")?.["result"]).toEqual({ decision: "decline" });
                                                                                ^
 error: expect(received).toEqual(expected)
 
@@ -20,11 +28,11 @@ error: expect(received).toEqual(expected)
 - Expected  - 1
 + Received  + 1
 
-      at <anonymous> (/private/tmp/herdr-formal-mutant-oSKvZ4/verification/herdr-chat/runtime.test.ts:152:74)
-(fail) worker approval remains unanswered by the bridge; chat approval is declined [21.86ms]
+      at <anonymous> (/private/tmp/herdr-formal-mutant-jykYqk/verification/herdr-chat/runtime.test.ts:172:74)
+(fail) worker approval remains unanswered by the bridge; chat approval is declined [29.10ms]
 
  0 pass
- 10 filtered out
+ 23 filtered out
  1 fail
  2 expect() calls
-Ran 1 test across 2 files. [92.00ms]
+Ran 1 test across 6 files. [98.00ms]

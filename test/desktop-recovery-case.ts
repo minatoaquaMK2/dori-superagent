@@ -45,7 +45,7 @@ const store = new Store(join(root, "state.json"));
 const rpc = new Rpc(socket);
 const engine = new Engine(store, rpc, socket);
 await engine.initialize();
-const conversation = engine.open({ conversation: "chat", cwd: root, space: "test-space" });
+const conversation = await engine.open({ conversation: "chat", cwd: root, space: "test-space" });
 try {
   if (scenario === "empty") {
     for (const kind of ["launching", "disconnected"] as const) {
@@ -62,6 +62,9 @@ try {
         state: kind === "launching" ? { kind } : { kind, reason: "lost connection" },
         reported: [],
         output: {},
+        runtime: { kind: "codex" },
+        origin: { conversation: "chat", segment: "test", run: "test", request: "test", profile: conversation.profile },
+        launch: "intent",
       };
       store.state.tasks.push(task);
       await engine.tasks.recover();
@@ -72,15 +75,14 @@ try {
     assert.equal(starts, 0);
     assert.equal(conversation.entries.length, 2);
   } else {
-    const dispatched = JSON.parse(
-      await engine.tasks.dispatch(conversation, "first", { title: "Fast task", prompt: "Finish" }),
+    await assert.rejects(
+      engine.tasks.dispatch(conversation, "first", { title: "Fast task", prompt: "Finish" }),
+      /simulated/,
     );
-    assert.equal(dispatched.state, "finished");
-    assert.match(dispatched.warning, /simulated/);
     const task = store.state.tasks[0];
     assert(task);
-    assert.equal(task.state.kind, "finished", "terminal failure must preserve completion");
-    assert.equal(activeTask(task), false);
+    assert.equal(task.state.kind, "disconnected", "terminal failure must retain unknown ownership");
+    assert.equal(starts, 0, "worker must not execute before terminal creation");
     task.state = { kind: "disconnected", reason: "Persisted by older bridge" };
     writeFileSync(
       join(root, "bin", "hc"),
@@ -94,7 +96,7 @@ try {
     assert.deepEqual(task.reported, [completed.id]);
     assert.equal(conversation.resultContext.length, 1);
     assert.equal(conversation.entries.filter((entry) => entry.id === `task:${task.id}:${completed.id}`).length, 1);
-    assert.equal(starts, 1, "recovery must not replay turns");
+    assert.equal(starts, 0, "recovery must not replay turns");
     engine.tasks.event(task, {
       method: "turn/started",
       params: { turn: { id: "follow-up", status: "inProgress", items: [] }, threadId: task.threadId },

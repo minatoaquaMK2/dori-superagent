@@ -1,17 +1,22 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { type Conversation, type State, stateSchema } from "./model.ts";
+import type { Conversation, State } from "./model.ts";
+import { migrateState } from "./migration.ts";
 
 export class Store {
   readonly state: State;
+  readonly directory: string;
   private pendingWrite: ReturnType<typeof setTimeout> | undefined;
   constructor(private readonly file: string) {
+    this.directory = dirname(file);
     mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
     try {
-      this.state = stateSchema.parse(JSON.parse(readFileSync(file, "utf8")));
+      const raw: unknown = JSON.parse(readFileSync(file, "utf8"));
+      this.state = migrateState(raw);
+      this.save();
     } catch (error) {
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
-      this.state = { version: 1, conversations: [], tasks: [] };
+      this.state = { version: 2, conversations: [], tasks: [] };
     }
   }
 

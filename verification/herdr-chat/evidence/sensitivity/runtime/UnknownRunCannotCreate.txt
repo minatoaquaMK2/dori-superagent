@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+test/desktop-profile.test.ts:
+
+test/desktop-native.test.ts:
+
+test/desktop-recovery.test.ts:
+
+test/desktop-main-recovery.test.ts:
+
+verification/herdr-chat/profile-runtime.test.ts:
+90 |     run.state = "unknown";
+91 |     conversation.state = { kind: "disconnected", reason: "Provider session closed" };
+92 |     f.store.save();
+93 |     const owner = { conversation: "chat", segment: run.origin.segment };
+94 |     const call = { name: "show_explanation", arguments: { ...explanation, operationId: run.operationId } };
+95 |     await expect(f.engine.tools.forBinding(owner, call)).rejects.toThrow();
+                                                                      ^
+error: expect(received).rejects.toThrow(expected)
+
+Expected promise that rejects
+Received promise that resolved: Promise { <resolved> }
+
+      at <anonymous> (/private/tmp/herdr-formal-mutant-e3Z3oh/verification/herdr-chat/profile-runtime.test.ts:95:66)
+(fail) unknown runs and revoked bindings cannot create a first host effect [25.17ms]
+
+verification/herdr-chat/runtime.test.ts:
+
+ 0 pass
+ 23 filtered out
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 6 files. [47.00ms]
