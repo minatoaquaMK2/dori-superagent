@@ -36,16 +36,7 @@ export function profilePicker(chat, locked) {
   const model = catalog?.models.find((model) => model.id === selected?.modelChoice);
   const modelLabel = model?.label ?? selected?.modelChoice ?? "正在读取模型…";
   const surface = () =>
-    v_flex()
-      .w(320)
-      .max_h(420)
-      .overflow_y_scrollbar()
-      .p(8)
-      .gap(3)
-      .rounded(10)
-      .bg(theme().popover)
-      .border_1()
-      .border_color(theme().border);
+    v_flex().w(320).p(8).gap(3).rounded(10).bg(theme().popover).border_1().border_color(theme().border);
   const popup = (id, label, content) =>
     Popover.new(id)
       .anchor("top_left")
@@ -66,12 +57,19 @@ export function profilePicker(chat, locked) {
   );
   const models = surface()
     .child(div().px(10).py(5).text_size(11).text_color(theme().dim).child("模型"))
-    .children(
-      (catalog?.models ?? []).map((item) =>
-        row(`model-${item.id}`, item.label, item.id === selected?.modelChoice, item.reason, (_event, cx) => {
-          chooseModel(chat, item.id, cx);
-        }),
-      ),
+    .child(
+      v_flex()
+        .id("model-options")
+        .max_h(240)
+        .overflow_y_scrollbar()
+        .gap(3)
+        .children(
+          (catalog?.models ?? []).map((item) =>
+            row(`model-${item.id}`, item.label, item.id === selected?.modelChoice, item.reason, (_event, cx) => {
+              chooseModel(chat, item.id, cx);
+            }),
+          ),
+        ),
     )
     .child(
       div()
@@ -85,18 +83,23 @@ export function profilePicker(chat, locked) {
         .child("Reasoning effort"),
     )
     .when(model?.effort.kind === "choices", (el) =>
-      el.children(
-        model.effort.options.map((option) =>
-          row(
-            `effort-${option.id}`,
-            option.label,
-            option.id === selected?.effortChoice,
-            option.reason,
-            (_event, cx) => {
-              chooseEffort(chat, option.id, cx);
-            },
+      el.child(
+        h_flex()
+          .flex_wrap()
+          .gap(4)
+          .children(
+            model.effort.options.map((option) =>
+              row(
+                `effort-${option.id}`,
+                option.label,
+                option.id === selected?.effortChoice,
+                option.reason,
+                (_event, cx) => {
+                  chooseEffort(chat, option.id, cx);
+                },
+              ),
+            ),
           ),
-        ),
       ),
     )
     .when(model?.effort.kind !== "choices", (el) =>
