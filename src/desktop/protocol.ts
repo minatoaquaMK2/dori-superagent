@@ -35,9 +35,16 @@ export async function startThread(rpc: Rpc, params: object): Promise<string> {
   return threadResultSchema.parse(await rpc.request("thread/start", params)).thread.id;
 }
 
-export async function startTurn(rpc: Rpc, threadId: string, text: string, requestId?: string): Promise<string> {
+export async function startTurn(
+  rpc: Rpc,
+  threadId: string,
+  text: string,
+  requestId?: string,
+  settings: { model?: string; effort?: string } = {},
+): Promise<string> {
   const result = await rpc.request("turn/start", {
     threadId,
+    ...settings,
     ...(requestId ? { clientUserMessageId: requestId } : {}),
     input: [{ type: "text", text, text_elements: [] }],
   });

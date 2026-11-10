@@ -1,6 +1,7 @@
 import { View, div } from "gpui-kit";
 import { h_flex, v_flex, Textarea, TextareaState, TextView } from "gpui-base";
 import { nextCommand, props, readTextFile, theme } from "herdr";
+import { profilePicker } from "./profile-picker.js";
 import { explanationCard } from "./explanation.js";
 
 export default class Chat extends View {
@@ -12,11 +13,18 @@ export default class Chat extends View {
     this.queued = 0;
     this.selections = {};
     this.error = "";
+    this.notice = "";
+    this.profile = null;
+    this.profileRevision = 0;
+    this.catalog = [];
+    this.preferences = [];
+    this.configuring = false;
+    this.menu = null;
     this.polling = false;
     this.sending = false;
     this.connection = null;
     this.pending = null;
-    this.input = TextareaState.new({ placeholder: "派个任务，或让 Codex 帮你解释一个问题…", rows: 3 });
+    this.input = TextareaState.new({ placeholder: "派个任务，或一起解释一个问题…", rows: 3 });
     this.input.set_auto_grow(2, 6);
     this.input.on("change", (_event, cx) => cx.notify());
     this.input.on("submit", (event, cx) => {
@@ -42,7 +50,7 @@ export default class Chat extends View {
   }
 
   async request(path, body) {
-    if (!this.connection) throw new Error("正在连接 Codex…");
+    if (!this.connection) throw new Error("正在连接聊天服务…");
     const response = await fetch(`${this.connection.url}${path}`, {
       method: body ? "POST" : "GET",
       headers: { authorization: `Bearer ${this.connection.token}`, "content-type": "application/json" },
@@ -79,7 +87,10 @@ export default class Chat extends View {
           this.revision = data.revision;
           this.state = data.state;
           this.queued = data.queued;
-          this.error = "";
+          this.profile = data.profile;
+          this.profileRevision = data.profileRevision;
+          this.catalog = data.catalog;
+          this.preferences = data.preferences;
           cx.notify();
         }
       } catch (error) {
@@ -94,11 +105,41 @@ export default class Chat extends View {
     });
   }
 
+  configure(selection, catalogRevision, cx) {
+    if (this.configuring || this.sending || this.state.kind !== "idle" || this.queued || !selection) return;
+    this.configuring = true;
+    this.error = "";
+    cx.notify();
+    cx.spawn(async (cx) => {
+      try {
+        await this.request("/configure", {
+          conversation: this.context.conversation,
+          requestId: `${Date.now()}-${Math.random()}`,
+          expectedRevision: this.profileRevision,
+          catalogRevision,
+          selection,
+        });
+        this.menu = null;
+      } catch (error) {
+        this.error = String(error);
+      } finally {
+        this.configuring = false;
+        this.revision = -1;
+        cx.notify();
+        this.refresh(cx);
+      }
+    });
+  }
+
   send(cx) {
     const text = this.input.value().trim();
-    if (!text || this.sending || !this.connection) return;
+    if (!text || this.sending || this.configuring || !this.connection || !this.profile) return;
     if (!this.pending || this.pending.text !== text)
-      this.pending = { text, requestId: `${Date.now()}-${Math.random().toString(36).slice(2)}` };
+      this.pending = {
+        text,
+        requestId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        expectedProfileRevision: this.profileRevision,
+      };
     const pending = this.pending;
     this.sending = true;
     this.error = "";
@@ -157,6 +198,9 @@ export default class Chat extends View {
   render() {
     const t = theme();
     const busy = this.state.kind === "running";
+    const providerName =
+      this.catalog.find((catalog) => catalog.provider === this.profile?.selection.provider)?.label ?? "CLI";
+    const locked = busy || this.queued > 0 || this.configuring || this.sending || this.state.kind === "disconnected";
     const connected = Boolean(this.connection) && this.state.kind !== "disconnected";
     const status =
       this.error ||
@@ -165,8 +209,8 @@ export default class Chat extends View {
         : this.queued
           ? `${this.queued} 条消息待发送`
           : busy
-            ? "Codex 正在回复…"
-            : "Enter 发送 · Shift + Enter 换行");
+            ? `${providerName} 正在回复…`
+            : this.notice || "Enter 发送 · Shift + Enter 换行");
     const button = (id, label, action, primary) =>
       div()
         .id(id)
@@ -215,7 +259,7 @@ export default class Chat extends View {
                   .rounded(3)
                   .bg(connected ? t.idle : t.dim),
               )
-              .child("Codex"),
+              .child(providerName),
           ),
       )
       .child(
@@ -266,6 +310,7 @@ export default class Chat extends View {
                 h_flex()
                   .items_center()
                   .gap(10)
+                  .child(profilePicker(this, locked))
                   .child(
                     div()
                       .flex_1()

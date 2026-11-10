@@ -24,14 +24,29 @@ export function serve(engine: Engine, token: string) {
             entries: conversation.entries.slice(-200),
             queued: conversation.pending.length,
             cwd: conversation.cwd,
+            profile: conversation.profile,
+            profileRevision: conversation.profileRevision,
+            preferences: conversation.preferences,
+            catalog: engine.configuration.list(conversation.cwd),
           });
         }
         if (request.method !== "POST") return new Response("Not found", { status: 404 });
         const body: unknown = await request.json();
         switch (url.pathname) {
           case "/open":
-            engine.open(body);
+            await engine.open(body);
             break;
+          case "/configure":
+            engine.configuration.configure(body);
+            break;
+          case "/catalog": {
+            const conversation = engine.store.conversation(
+              z.object({ conversation: z.string() }).parse(body).conversation,
+            );
+            await engine.configuration.refresh(conversation.cwd);
+            engine.store.save(conversation);
+            break;
+          }
           case "/send":
             engine.send(body);
             break;

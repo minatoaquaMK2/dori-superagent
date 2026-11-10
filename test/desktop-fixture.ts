@@ -34,6 +34,32 @@ export async function fixture() {
         requests.push(request);
         if (request.id === undefined || !request.method) return;
         let result: unknown = {};
+        if (request.method === "model/list")
+          result = {
+            data: [
+              {
+                id: "model-a",
+                model: "model-a",
+                displayName: "Model A",
+                isDefault: true,
+                supportedReasoningEfforts: [
+                  { reasoningEffort: "low", description: "Low" },
+                  { reasoningEffort: "high", description: "High" },
+                ],
+                defaultReasoningEffort: "low",
+              },
+              {
+                id: "model-b",
+                model: "model-b",
+                displayName: "Model B",
+                isDefault: false,
+                supportedReasoningEfforts: [],
+                defaultReasoningEffort: "low",
+              },
+            ],
+            nextCursor: null,
+          };
+        if (request.method === "config/read") result = { config: { model: "model-a", model_reasoning_effort: "high" } };
         if (request.method === "thread/start" || request.method === "thread/resume")
           result = { thread: { id: "chat-thread", status: { type: "idle" }, turns: [] } };
         if (request.method === "turn/start") result = { turn: { id: "chat-turn", status: "inProgress", items: [] } };
@@ -45,7 +71,7 @@ export async function fixture() {
   const rpc = new Rpc(socket);
   const engine = new Engine(store, rpc, socket);
   await engine.initialize();
-  engine.open({ conversation: "chat", cwd: root, space: "test-space" });
+  await engine.open({ conversation: "chat", cwd: root, space: "test-space" });
   const token = "test-token";
   const http = serve(engine, token);
   return {

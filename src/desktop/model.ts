@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { profileSchema, selectionSchema } from "./profile.ts";
 
 const text = z.string().min(1).max(20_000);
 const id = z.string().min(1).max(200);
@@ -47,9 +48,40 @@ export const taskStateSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("failed"), reason: z.string() }),
   z.object({ kind: z.literal("disconnected"), reason: z.string() }),
 ]);
-const messageSchema = z.object({ requestId: id, text });
+export const originSchema = z.object({ conversation: id, segment: id, run: id, request: id, profile: profileSchema });
+export type RunOrigin = z.infer<typeof originSchema>;
+export const runSchema = z.object({
+  origin: originSchema,
+  text,
+  context: z.string(),
+  operationId: id,
+  state: z.enum(["accepted", "attempted", "finished", "unknown"]),
+  turnId: z.string().nullable(),
+});
+export type MainRun = z.infer<typeof runSchema>;
+const segmentSchema = z.object({
+  id,
+  profile: profileSchema,
+  sessionId: z.string().nullable(),
+  epoch: z.string().nullable(),
+  handoff: z.string(),
+});
+export type Segment = z.infer<typeof segmentSchema>;
+const messageSchema = z.object({ requestId: id, text, runId: id });
 export const openSchema = z.object({ conversation: id, cwd: z.string().min(1), space: id });
-export const sendSchema = messageSchema.extend({ conversation: id });
+export const sendSchema = z.object({
+  conversation: id,
+  requestId: id,
+  text,
+  expectedProfileRevision: z.number().int().optional(),
+});
+export const configureSchema = z.object({
+  conversation: id,
+  requestId: id,
+  expectedRevision: z.number().int(),
+  catalogRevision: id,
+  selection: selectionSchema,
+});
 const conversationSchema = openSchema.extend({
   threadId: z.string().nullable(),
   revision: z.number().int().nonnegative(),
@@ -58,6 +90,14 @@ const conversationSchema = openSchema.extend({
   pending: z.array(messageSchema),
   requests: z.array(id),
   resultContext: z.array(z.string()),
+  profile: profileSchema,
+  profileRevision: z.number().int().nonnegative(),
+  preferences: z.array(profileSchema),
+  activeSegment: id,
+  segments: z.array(segmentSchema),
+  activeRun: id.nullable(),
+  runs: z.array(runSchema),
+  configurations: z.array(z.object({ requestId: id, selection: selectionSchema })),
 });
 export type Conversation = z.infer<typeof conversationSchema>;
 const taskSchema = z.object({
@@ -73,10 +113,12 @@ const taskSchema = z.object({
   state: taskStateSchema,
   reported: z.array(z.string()),
   output: z.record(z.string(), z.string()),
+  origin: originSchema,
+  launch: z.enum(["intent", "thread-attempted", "thread-created", "turn-attempted", "terminal-attempted", "attached"]),
 });
 export type Task = z.infer<typeof taskSchema>;
 export const stateSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
   conversations: z.array(conversationSchema),
   tasks: z.array(taskSchema),
 });

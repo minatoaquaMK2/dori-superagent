@@ -100,6 +100,14 @@ test("worker result preserves failure and completion identity; terminal owns its
       state: { kind: "running", turnId: "worker-turn" },
       reported: [],
       output: {},
+      origin: {
+        conversation: "chat",
+        segment: "test",
+        run: "test",
+        request: "test",
+        profile: f.store.conversation("chat").profile,
+      },
+      launch: "intent",
     };
     f.store.state.tasks.push(task);
     f.send(
@@ -165,6 +173,14 @@ test("recovery releases a dispatch that crashed before creating its worker threa
       state: { kind: "launching" },
       reported: [],
       output: {},
+      origin: {
+        conversation: "chat",
+        segment: "test",
+        run: "test",
+        request: "test",
+        profile: f.store.conversation("chat").profile,
+      },
+      launch: "intent",
     };
     f.store.state.tasks.push(task);
     await f.engine.tasks.recover();

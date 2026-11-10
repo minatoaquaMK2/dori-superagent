@@ -45,7 +45,7 @@ const store = new Store(join(root, "state.json"));
 const rpc = new Rpc(socket);
 const engine = new Engine(store, rpc, socket);
 await engine.initialize();
-const conversation = engine.open({ conversation: "chat", cwd: root, space: "test-space" });
+const conversation = await engine.open({ conversation: "chat", cwd: root, space: "test-space" });
 try {
   if (scenario === "empty") {
     for (const kind of ["launching", "disconnected"] as const) {
@@ -62,6 +62,8 @@ try {
         state: kind === "launching" ? { kind } : { kind, reason: "lost connection" },
         reported: [],
         output: {},
+        origin: { conversation: "chat", segment: "test", run: "test", request: "test", profile: conversation.profile },
+        launch: "intent",
       };
       store.state.tasks.push(task);
       await engine.tasks.recover();
